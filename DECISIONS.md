@@ -28,3 +28,18 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Timestamps | `TIMESTAMPTZ` (PostgreSQL) ↔ `Instant` (Java) | UTC sempre; evita confusão de fuso |
 | Índice em `diet_plans` | `(user_id, created_at DESC)` | Consulta principal é "histórico do usuário ordenado por data" |
 | `ddl-auto` | `validate` (já configurado) | Garante que migration e mapping JPA fiquem em sincronia |
+
+## Etapa 3
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Estratégia de sessão | Stateless (sem `HttpSession`) | API REST + JWT; servidor não guarda estado |
+| Algoritmo de hash de senha | BCrypt (padrão Spring) | Adaptativo, work-factor configurável; padrão da indústria |
+| Algoritmo JWT | HS256 (HMAC-SHA256) via segredo simétrico | Suficiente p/ MVP de servidor único; sem necessidade de chave assimétrica |
+| Claim do JWT | `sub` = userId, claim extra `email` | `sub` numérico evita lookup por string e dispensa atualização quando o email muda |
+| Filtro JWT | `OncePerRequestFilter` antes do `UsernamePasswordAuthenticationFilter` | Padrão; popula o `SecurityContext` e deixa o restante das regras agirem normalmente |
+| `AuthenticationEntryPoint` | `HttpStatusEntryPoint(401)` | 401 puro; corpo de erro padronizado é responsabilidade do `GlobalExceptionHandler` quando o erro nasce no controller |
+| Normalização de e-mail | `trim().toLowerCase()` antes de salvar/consultar | Evita duplicatas por diferença de caixa |
+| Princípal do Spring | `AppUserPrincipal` (UserDetails customizado) | Expõe `id` do `User` direto no principal; facilita pegar o dono nos controllers das próximas etapas |
+| CORS | Apenas `http://localhost:5173` (Vite default) | Origem do front-end em dev; ajustar em produção |
+| Liberados sem auth | `/api/auth/**`, Swagger UI e OpenAPI | Necessário para registro/login e exploração da API |
