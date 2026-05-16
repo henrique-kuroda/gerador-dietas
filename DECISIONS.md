@@ -43,3 +43,14 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Princípal do Spring | `AppUserPrincipal` (UserDetails customizado) | Expõe `id` do `User` direto no principal; facilita pegar o dono nos controllers das próximas etapas |
 | CORS | Apenas `http://localhost:5173` (Vite default) | Origem do front-end em dev; ajustar em produção |
 | Liberados sem auth | `/api/auth/**`, Swagger UI e OpenAPI | Necessário para registro/login e exploração da API |
+
+## Etapa 4
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| `PUT /api/profile` faz upsert | Mesmo endpoint cria e atualiza | Spec lista só `PUT`; perfil é 1:1 com usuário, não há semântica de "criar várias vezes" |
+| `GET /api/profile` sem perfil | 404 + mensagem instrutiva | Mais claro que devolver objeto vazio; o front sabe que precisa redirecionar para a tela de perfil |
+| Identificação do dono | `@AuthenticationPrincipal AppUserPrincipal` | Não precisa de helper extra nem de buscar usuário a cada request |
+| Construtor público `Profile(User)` | Necessário porque `ProfileService` está em outro pacote | Mantém o `protected Profile()` para Hibernate e centraliza a obrigatoriedade do `User` |
+| `dietaryRestrictions` em branco vira `null` | Normalização no service | Evita strings vazias no banco e simplifica a lógica do `DietGenerator` (Etapa 6) |
+| Validação de enums inválidos no JSON | Handler para `HttpMessageNotReadableException` extraindo `InvalidFormatException` | Bean Validation não captura enums fora do range — o erro nasce no Jackson antes |

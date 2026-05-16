@@ -1,7 +1,9 @@
 package com.gerador.dietas.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -17,6 +19,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
         return build(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
+    }
+
+    @ExceptionHandler(ProfileNotFoundException.class)
+    public ResponseEntity<ApiError> handleProfileNotFound(ProfileNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex) {
+        String message = "Corpo da requisição inválido";
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException ife) {
+            String field = ife.getPath().isEmpty() ? "campo" : ife.getPath().get(0).getFieldName();
+            message = field + " com valor inválido: " + ife.getValue();
+        }
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", message);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

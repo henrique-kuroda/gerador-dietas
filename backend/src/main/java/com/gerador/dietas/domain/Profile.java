@@ -59,6 +59,10 @@ public class Profile {
     protected Profile() {
     }
 
+    public Profile(User user) {
+        this.user = user;
+    }
+
     public Long getId() {
         return id;
     }
