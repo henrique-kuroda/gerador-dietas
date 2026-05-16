@@ -56,7 +56,7 @@ public class Profile {
     @Column(name = "body_fat_percent")
     private Double bodyFatPercent;
 
-    protected Profile() {
+    public Profile() {
     }
 
     public Profile(User user) {

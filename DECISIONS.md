@@ -54,3 +54,15 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Construtor público `Profile(User)` | Necessário porque `ProfileService` está em outro pacote | Mantém o `protected Profile()` para Hibernate e centraliza a obrigatoriedade do `User` |
 | `dietaryRestrictions` em branco vira `null` | Normalização no service | Evita strings vazias no banco e simplifica a lógica do `DietGenerator` (Etapa 6) |
 | Validação de enums inválidos no JSON | Handler para `HttpMessageNotReadableException` extraindo `InvalidFormatException` | Bean Validation não captura enums fora do range — o erro nasce no Jackson antes |
+
+## Etapa 5
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Estratégia das fórmulas | Cada implementação `@Component` agregada num `EnumMap<Formula, MetabolicFormula>` | Adicionar nova fórmula = criar a classe; o service indexa por enum em vez de `if/else` |
+| `MetabolicFormula.type()` | Método na interface além de `calculateBmr` | Permite ao service indexar sem refletir; nome explícito > anotação custom |
+| Arredondamento de TMB/TDEE/alvo | `Math.round` para `int` apenas no resultado final | Mantém precisão dos cálculos intermediários; o `DietPlan` armazena `Integer` (kcal sem casas) |
+| Fator de atividade e multiplicador de objetivo | Campo dentro dos enums `ActivityLevel`/`Goal` | Os números são parte do domínio, não de configuração externa; evita switch espalhado |
+| Construtor público `Profile()` | Necessário para fixtures de teste em outro pacote | Hibernate continua feliz; mantém a entidade testável sem reflection |
+| Test fixture | Helper estático `ProfileFixtures` (apenas em src/test/java) | Centraliza criação de `Profile` nos testes; não vaza para o código de produção |
+| Asserts numéricos | AssertJ `isCloseTo(..., within(0.x))` | Trata aproximação de doubles sem `assertEquals(delta)` repetitivo |
