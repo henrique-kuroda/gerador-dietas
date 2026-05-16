@@ -66,3 +66,18 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Construtor público `Profile()` | Necessário para fixtures de teste em outro pacote | Hibernate continua feliz; mantém a entidade testável sem reflection |
 | Test fixture | Helper estático `ProfileFixtures` (apenas em src/test/java) | Centraliza criação de `Profile` nos testes; não vaza para o código de produção |
 | Asserts numéricos | AssertJ `isCloseTo(..., within(0.x))` | Trata aproximação de doubles sem `assertEquals(delta)` repetitivo |
+
+## Etapa 6
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Abstração da LLM | `LlmService.generateJson(prompt)` retornando texto bruto | Mantém `DietGenerator` agnóstico do provedor; trocar Gemini por Groq/OpenRouter exige só nova impl |
+| Template de prompt | Arquivo `resources/prompts/diet-prompt.txt` carregado no constructor do `DietGenerator` | Spec proíbe strings concatenadas; arquivo é mais fácil de editar e revisar que constante Java |
+| Formato da resposta | `responseMimeType: application/json` na chamada Gemini | A própria API força JSON estruturado; reduz necessidade de limpeza |
+| Parsing defensivo | `stripCodeFences` remove ``` ```json``` / ``` ``` ``` antes do `ObjectMapper` | LLM eventualmente envolve o JSON em cerca markdown; falhar nisso seria desperdiçar a chamada |
+| Retry | Loop manual, 3 tentativas (500ms/1500ms/3000ms), só p/ `UNAVAILABLE`/`RATE_LIMITED` | Suficiente p/ MVP; evita pull de Spring Retry; erros de configuração não são retentados |
+| Tipos de erro da LLM | Enum `LlmException.Kind` (UNAVAILABLE, RATE_LIMITED, INVALID_RESPONSE, CONFIGURATION) | Mapping limpo para HTTP no handler global (502/503/500) |
+| Cliente HTTP | `RestClient` (decisão Etapa 1) com timeouts 10s/60s | Geração pode ser lenta (LLM); leitura curta cortaria respostas legítimas |
+| Validação de plano vazio | `meals` vazio → `INVALID_RESPONSE` | Plano sem refeições não tem utilidade; melhor falhar e permitir nova tentativa |
+| Fixture compartilhada | `support/ProfileFixtures` (pacote `support` em test) | Reuso entre testes de `metabolism` e `llm` sem dependência cruzada |
+| Records `DietContent.*` com `@JsonIgnoreProperties(ignoreUnknown = true)` | Tolerar campos extras da LLM | LLMs ocasionalmente acrescentam chaves; desserialização não deve quebrar por isso |

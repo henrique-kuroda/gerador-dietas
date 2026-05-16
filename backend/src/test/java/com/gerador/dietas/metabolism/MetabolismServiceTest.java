@@ -5,6 +5,7 @@ import com.gerador.dietas.domain.Formula;
 import com.gerador.dietas.domain.Goal;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.domain.Sex;
+import com.gerador.dietas.support.ProfileFixtures;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

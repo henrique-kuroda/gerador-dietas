@@ -1,6 +1,7 @@
 package com.gerador.dietas.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.gerador.dietas.llm.LlmException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -61,6 +62,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
         return build(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage());
+    }
+
+    @ExceptionHandler(LlmException.class)
+    public ResponseEntity<ApiError> handleLlm(LlmException ex) {
+        return switch (ex.getKind()) {
+            case UNAVAILABLE, RATE_LIMITED ->
+                    build(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable",
+                            "Serviço de IA temporariamente indisponível. Tente novamente em instantes.");
+            case INVALID_RESPONSE ->
+                    build(HttpStatus.BAD_GATEWAY, "Bad Gateway",
+                            "Resposta inválida da IA. Tente gerar a dieta novamente.");
+            case CONFIGURATION ->
+                    build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
+                            "Erro de configuração do serviço de IA.");
+        };
     }
 
     private String formatFieldError(FieldError fe) {
