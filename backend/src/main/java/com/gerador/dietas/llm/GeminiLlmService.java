@@ -31,7 +31,12 @@ public class GeminiLlmService implements LlmService {
     @Override
     public String generateJson(String prompt) {
         if (props.apiKey() == null || props.apiKey().isBlank()) {
+            log.error("GEMINI_API_KEY não foi injetada no processo. Confira variáveis de ambiente / .env.");
             throw new LlmException(Kind.CONFIGURATION, "GEMINI_API_KEY não configurada");
+        }
+        if (props.model() == null || props.model().isBlank()) {
+            log.error("GEMINI_MODEL não foi injetado. Conferir variáveis de ambiente / .env.");
+            throw new LlmException(Kind.CONFIGURATION, "GEMINI_MODEL não configurado");
         }
 
         LlmException last = null;
@@ -74,15 +79,16 @@ public class GeminiLlmService implements LlmService {
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, (req, resp) -> {
                         int status = resp.getStatusCode().value();
-                        String reason = "HTTP " + status;
+                        String errorBody = new String(resp.getBody().readAllBytes());
+                        log.warn("Gemini retornou {} para modelo='{}'. Body: {}", status, props.model(), errorBody);
                         if (status == 429) {
                             throw new LlmException(Kind.RATE_LIMITED, "Gemini retornou 429 (rate limit)");
                         }
                         if (status >= 500) {
-                            throw new LlmException(Kind.UNAVAILABLE, "Gemini indisponível: " + reason);
+                            throw new LlmException(Kind.UNAVAILABLE, "Gemini indisponível: HTTP " + status);
                         }
                         throw new LlmException(Kind.CONFIGURATION,
-                                "Gemini rejeitou a requisição (" + reason + "). Verifique chave/modelo.");
+                                "Gemini rejeitou a requisição (HTTP " + status + "). Verifique chave/modelo.");
                     })
                     .body(GeminiResponse.class);
 
