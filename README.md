@@ -67,11 +67,13 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ```bash
 cd frontend
+cp .env.example .env   # opcional; o default já aponta para localhost:8080
 npm install
 npm run dev
 ```
 
-O front-end ficará disponível em `http://localhost:5173`.
+O front-end ficará disponível em `http://localhost:5173`. Fluxo:
+cadastro → login → preencher perfil → gerar dieta → ver histórico.
 
 ---
 

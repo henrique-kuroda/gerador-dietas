@@ -94,3 +94,21 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Listagem em `GET /api/diet` | Mesmo `DietPlanResponse` da geração (inclui `content`) | MVP com poucos planos por usuário; manter um único DTO é mais simples que summary separado |
 | Persistência do `promptUsed` | Sempre salvar o prompt que foi enviado | A2 lista `promptUsed` para depuração; barato e útil para diagnosticar respostas ruins |
 | Transação que envolve a LLM | `@Transactional` no `generate` (cobre leitura do perfil + persistência final) | A transação fica aberta durante a chamada à LLM — aceitável no MVP, único usuário por vez; revisitar com pool real |
+
+## Etapa 8
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Versão do React | 19 (scaffold padrão do Vite atual) | Spec pede "React 18+"; o scaffold já entrega 19 e a API que usamos é igual; evitar downgrade manual |
+| Tailwind | v4 via `@tailwindcss/vite` + `@import "tailwindcss"` no CSS | Setup oficial atual; dispensa `tailwind.config.js` para o conjunto padrão |
+| Estado do servidor | TanStack Query (`useQuery`/`useMutation`) | Cache, dedupe, refetch e estados de loading sem reinventar |
+| Storage do JWT | `localStorage` (`diet.jwt`) lido por interceptor Axios | MVP single-page; suficiente. Aceita o risco XSS conhecido — apropriado para escopo educacional |
+| Logout em 401 | Interceptor de resposta limpa o token e redireciona para `/login` | Evita ficar tentando requests com token expirado em todas as queries |
+| Auth context | Deriva user do payload JWT (`email`) sem call extra | Token já carrega o `email`; evita um `GET /me` que não existe |
+| Decoder JWT | `atob` + JSON.parse com try/catch | Não precisamos validar assinatura no front (servidor já valida); só queremos o claim |
+| Rotas privadas | `<ProtectedRoute>` + rota pai com `<AppLayout/>` e `<Outlet/>` | Layout compartilhado por todas as telas autenticadas, sem repetição |
+| Validação de formulários | React Hook Form + Zod (`zodResolver`) | Spec exige a stack; `z.coerce.number` cuida do `<input type="number">` que devolve string |
+| Tipagem do form com `z.coerce` | `useForm<z.input, unknown, z.output>` | RHF separa tipo de entrada (string) e saída (number após coerção); usar `z.infer` quebra a inferência do resolver |
+| `bodyFatPercent` opcional | aceita `""` no schema e converte para `null` antes de enviar | Input vazio vira string; back-end espera `null` para significar "ausente" → fórmula Mifflin |
+| Disclaimer | Componente `<Disclaimer/>` exibido em Dashboard, Histórico e Detalhe da dieta | Spec exige visível; entra em todas as telas que mostram/geram dieta |
+| Página inicial de novo usuário | Após cadastro o login é automático e redireciona para `/profile` | Evita usuário cair no dashboard sem perfil; o botão "Gerar" ficaria desabilitado de qualquer jeito |
