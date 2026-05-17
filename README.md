@@ -73,7 +73,8 @@ npm run dev
 ```
 
 O front-end ficará disponível em `http://localhost:5173`. Fluxo:
-cadastro → login → preencher perfil → gerar dieta → ver histórico.
+cadastro → login → preencher perfil → gerar dieta → ver histórico →
+abrir uma dieta e baixar o PDF.
 
 ---
 

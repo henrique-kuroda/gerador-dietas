@@ -21,6 +21,7 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.7.0</springdoc.version>
+        <openpdf.version>2.0.3</openpdf.version>
     </properties>
 
     <dependencies>
@@ -82,6 +83,13 @@
             <artifactId>jjwt-jackson</artifactId>
             <version>${jjwt.version}</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- PDF (OpenPDF, fork LGPL/MPL do iText 4) -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>${openpdf.version}</version>
         </dependency>
 
         <!-- springdoc OpenAPI / Swagger -->

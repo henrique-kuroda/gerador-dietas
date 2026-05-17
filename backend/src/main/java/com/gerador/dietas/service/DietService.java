@@ -17,6 +17,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +33,7 @@ public class DietService {
     private final DietPlanRepository dietPlanRepository;
     private final MetabolismService metabolismService;
     private final DietGenerator dietGenerator;
+    private final DietPdfService dietPdfService;
     private final ObjectMapper objectMapper;
 
     public DietService(ProfileRepository profileRepository,
@@ -38,12 +41,14 @@ public class DietService {
                        DietPlanRepository dietPlanRepository,
                        MetabolismService metabolismService,
                        DietGenerator dietGenerator,
+                       DietPdfService dietPdfService,
                        ObjectMapper objectMapper) {
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
         this.dietPlanRepository = dietPlanRepository;
         this.metabolismService = metabolismService;
         this.dietGenerator = dietGenerator;
+        this.dietPdfService = dietPdfService;
         this.objectMapper = objectMapper;
     }
 
@@ -78,5 +83,14 @@ public class DietService {
         return dietPlanRepository.findByIdAndUserId(dietPlanId, userId)
                 .orElseThrow(() -> new DietPlanNotFoundException(
                         "Dieta " + dietPlanId + " não encontrada."));
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] renderPdf(Long userId, Long dietPlanId) {
+        DietPlan plan = getOwned(userId, dietPlanId);
+        Optional<Profile> profile = profileRepository.findByUserId(userId);
+        // Se o usuário apagou o perfil depois de gerar a dieta, ainda emitimos o PDF
+        // só com os dados calculados/conteúdo da dieta; o profile é opcional na renderização.
+        return dietPdfService.render(plan, profile.orElse(null));
     }
 }

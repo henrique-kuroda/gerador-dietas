@@ -112,3 +112,14 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | `bodyFatPercent` opcional | aceita `""` no schema e converte para `null` antes de enviar | Input vazio vira string; back-end espera `null` para significar "ausente" → fórmula Mifflin |
 | Disclaimer | Componente `<Disclaimer/>` exibido em Dashboard, Histórico e Detalhe da dieta | Spec exige visível; entra em todas as telas que mostram/geram dieta |
 | Página inicial de novo usuário | Após cadastro o login é automático e redireciona para `/profile` | Evita usuário cair no dashboard sem perfil; o botão "Gerar" ficaria desabilitado de qualquer jeito |
+
+## Etapa 9
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Biblioteca de PDF | OpenPDF 2.x (`com.github.librepdf:openpdf`) | Spec deixa livre entre OpenPDF/iText 7/Flying Saucer. OpenPDF é fork LGPL/MPL do iText 4 — sem AGPL, API simples, sem precisar de HTML/CSS engine. |
+| Estratégia de montagem | Programática (Paragraph, PdfPTable) — sem template HTML | MVP curto: o layout é fixo e simples. Flying Saucer exigiria CSS+XHTML estrito sem ganho real aqui. |
+| Perfil no PDF | Lê o perfil atual no momento do download (opcional — se ausente, omite a seção) | Não fizemos snapshot do perfil no `DietPlan`. Mudar isso agora alteraria o domínio sem benefício para o MVP. Documentado para usuário entender que o PDF mostra o perfil corrente, não o do momento da geração. |
+| Endpoint `/pdf` | `produces=application/pdf`, `Content-Disposition: attachment` com nome `dieta-{id}.pdf` | Comportamento padrão de download; nome previsível para usuário e testes. |
+| Download no front | Axios com `responseType: "blob"` + `URL.createObjectURL` + `<a download>` programático | Header `Authorization` (JWT) precisa ir junto, então `<a href>` simples não serve. |
+| Documentação Swagger | `@Operation` por endpoint no `DietController` | Garante que `/swagger-ui.html` mostre os 4 endpoints com descrição legível, incluindo o `/pdf`. |
