@@ -81,3 +81,16 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Validação de plano vazio | `meals` vazio → `INVALID_RESPONSE` | Plano sem refeições não tem utilidade; melhor falhar e permitir nova tentativa |
 | Fixture compartilhada | `support/ProfileFixtures` (pacote `support` em test) | Reuso entre testes de `metabolism` e `llm` sem dependência cruzada |
 | Records `DietContent.*` com `@JsonIgnoreProperties(ignoreUnknown = true)` | Tolerar campos extras da LLM | LLMs ocasionalmente acrescentam chaves; desserialização não deve quebrar por isso |
+
+## Etapa 7
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| `POST /api/diet/generate` sem corpo | Lê só o JWT; gera com base no perfil persistido | Spec só pede para usar dados do perfil; passar o perfil no corpo duplicaria a fonte de verdade |
+| Perfil ausente ao gerar dieta | `ProfileIncompleteException` → HTTP 409 | A8 sugere 409/400; 409 (Conflict) descreve melhor "estado incompleto, complete antes" |
+| Conversão `DietContent` → `Map<String, Object>` | `ObjectMapper.convertValue(content, MAP_TYPE)` | Sem serializar/desserializar para string; alimenta o mapping `@JdbcTypeCode(JSON)` direto |
+| `DietPlan(User)` construtor público | Mesmo padrão de `Profile(User)` | `DietService` está em outro pacote; mantém o `protected DietPlan()` para Hibernate |
+| Acesso a dieta de outro usuário | `findByIdAndUserId` → 404 `DietPlanNotFoundException` | A8 permite 403/404; 404 não vaza existência de recursos alheios |
+| Listagem em `GET /api/diet` | Mesmo `DietPlanResponse` da geração (inclui `content`) | MVP com poucos planos por usuário; manter um único DTO é mais simples que summary separado |
+| Persistência do `promptUsed` | Sempre salvar o prompt que foi enviado | A2 lista `promptUsed` para depuração; barato e útil para diagnosticar respostas ruins |
+| Transação que envolve a LLM | `@Transactional` no `generate` (cobre leitura do perfil + persistência final) | A transação fica aberta durante a chamada à LLM — aceitável no MVP, único usuário por vez; revisitar com pool real |

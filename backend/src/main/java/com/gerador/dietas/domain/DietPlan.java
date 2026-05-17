@@ -56,6 +56,10 @@ public class DietPlan {
     protected DietPlan() {
     }
 
+    public DietPlan(User user) {
+        this.user = user;
+    }
+
     @jakarta.persistence.PrePersist
     void onCreate() {
         if (createdAt == null) {

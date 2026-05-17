@@ -27,6 +27,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
+    @ExceptionHandler(ProfileIncompleteException.class)
+    public ResponseEntity<ApiError> handleProfileIncomplete(ProfileIncompleteException ex) {
+        return build(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
+    }
+
+    @ExceptionHandler(DietPlanNotFoundException.class)
+    public ResponseEntity<ApiError> handleDietPlanNotFound(DietPlanNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex) {
         String message = "Corpo da requisição inválido";
