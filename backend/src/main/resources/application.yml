@@ -1,4 +1,8 @@
 spring:
+  profiles:
+    # Sem SPRING_PROFILES_ACTIVE assume dev (ambiente local). Em produção,
+    # defina outro profile — o fallback do JWT_SECRET derruba o boot lá.
+    default: dev
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/dietas}
     username: ${DB_USERNAME:postgres}
