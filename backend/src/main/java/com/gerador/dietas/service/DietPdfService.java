@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gerador.dietas.domain.DietPlan;
 import com.gerador.dietas.domain.Goal;
-import com.gerador.dietas.domain.Profile;
+import com.gerador.dietas.domain.ProfileSnapshot;
 import com.gerador.dietas.llm.DietContent;
 import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
@@ -45,7 +45,7 @@ public class DietPdfService {
         this.objectMapper = objectMapper;
     }
 
-    public byte[] render(DietPlan plan, Profile profile) {
+    public byte[] render(DietPlan plan, ProfileSnapshot profile) {
         DietContent content = objectMapper.convertValue(plan.getContent(), new TypeReference<>() {
         });
 
@@ -77,7 +77,7 @@ public class DietPdfService {
         return out.toByteArray();
     }
 
-    private void addProfileSection(Document doc, Profile profile) {
+    private void addProfileSection(Document doc, ProfileSnapshot profile) {
         doc.add(new Paragraph("Perfil utilizado", H2));
         doc.add(spacing(6));
         PdfPTable table = twoColumnTable();

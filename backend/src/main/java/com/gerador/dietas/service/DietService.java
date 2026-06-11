@@ -3,6 +3,7 @@ package com.gerador.dietas.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gerador.dietas.domain.DietPlan;
 import com.gerador.dietas.domain.Profile;
+import com.gerador.dietas.domain.ProfileSnapshot;
 import com.gerador.dietas.domain.User;
 import com.gerador.dietas.exception.DietPlanNotFoundException;
 import com.gerador.dietas.exception.ProfileIncompleteException;
@@ -16,8 +17,6 @@ import com.gerador.dietas.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 import java.util.List;
 import java.util.Map;
@@ -67,6 +66,7 @@ public class DietService {
 
         User user = userRepository.getReferenceById(userId);
         DietPlan plan = new DietPlan(user);
+        plan.setProfileSnapshot(ProfileSnapshot.from(profile));
         plan.setTmb(metabolism.tmb());
         plan.setTdee(metabolism.tdee());
         plan.setTargetCalories(metabolism.targetCalories());
@@ -92,9 +92,14 @@ public class DietService {
     @Transactional(readOnly = true)
     public byte[] renderPdf(Long userId, Long dietPlanId) {
         DietPlan plan = getOwned(userId, dietPlanId);
-        Optional<Profile> profile = profileRepository.findByUserId(userId);
-        // Se o usuário apagou o perfil depois de gerar a dieta, ainda emitimos o PDF
-        // só com os dados calculados/conteúdo da dieta; o profile é opcional na renderização.
-        return dietPdfService.render(plan, profile.orElse(null));
+        // Planos anteriores à V3 não têm snapshot — caímos no perfil atual; se o
+        // usuário também apagou o perfil, o PDF sai só com os dados calculados.
+        ProfileSnapshot snapshot = plan.getProfileSnapshot();
+        if (snapshot == null) {
+            snapshot = profileRepository.findByUserId(userId)
+                    .map(ProfileSnapshot::from)
+                    .orElse(null);
+        }
+        return dietPdfService.render(plan, snapshot);
     }
 }

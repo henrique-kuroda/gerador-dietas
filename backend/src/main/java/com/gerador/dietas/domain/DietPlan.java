@@ -1,6 +1,7 @@
 package com.gerador.dietas.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -52,6 +53,9 @@ public class DietPlan {
 
     @Column(name = "prompt_used", columnDefinition = "text")
     private String promptUsed;
+
+    @Embedded
+    private ProfileSnapshot profileSnapshot;
 
     protected DietPlan() {
     }
@@ -129,6 +133,18 @@ public class DietPlan {
 
     public void setPromptUsed(String promptUsed) {
         this.promptUsed = promptUsed;
+    }
+
+    /** Nulo (ou vazio) em planos gerados antes da migration V3. */
+    public ProfileSnapshot getProfileSnapshot() {
+        if (profileSnapshot == null || profileSnapshot.isEmpty()) {
+            return null;
+        }
+        return profileSnapshot;
+    }
+
+    public void setProfileSnapshot(ProfileSnapshot profileSnapshot) {
+        this.profileSnapshot = profileSnapshot;
     }
 
     @Override

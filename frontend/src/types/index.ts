@@ -79,6 +79,8 @@ export interface DietPlanResponse {
   formulaUsed: Formula;
   content: DietContent;
   createdAt: string;
+  /** Perfil no momento da geração; null em planos antigos. */
+  profileSnapshot: ProfileResponse | null;
 }
 
 export interface ApiError {
