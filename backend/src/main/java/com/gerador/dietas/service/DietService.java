@@ -52,13 +52,17 @@ public class DietService {
         this.objectMapper = objectMapper;
     }
 
-    @Transactional
+    // Sem @Transactional de método: a chamada à LLM leva até 60s + retries e não pode
+    // segurar uma conexão do pool. Leitura e persistência usam as transações curtas
+    // dos próprios repositórios.
     public DietPlan generate(Long userId) {
         Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ProfileIncompleteException(
                         "Complete seu perfil em PUT /api/profile antes de gerar uma dieta."));
 
         MetabolismResult metabolism = metabolismService.calculate(profile);
+
+        // Fora de qualquer transação: pode demorar.
         DietGeneratorResult generated = dietGenerator.generate(profile, metabolism);
 
         User user = userRepository.getReferenceById(userId);

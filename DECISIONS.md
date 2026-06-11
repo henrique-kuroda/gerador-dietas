@@ -93,7 +93,7 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Acesso a dieta de outro usuário | `findByIdAndUserId` → 404 `DietPlanNotFoundException` | A8 permite 403/404; 404 não vaza existência de recursos alheios |
 | Listagem em `GET /api/diet` | Mesmo `DietPlanResponse` da geração (inclui `content`) | MVP com poucos planos por usuário; manter um único DTO é mais simples que summary separado |
 | Persistência do `promptUsed` | Sempre salvar o prompt que foi enviado | A2 lista `promptUsed` para depuração; barato e útil para diagnosticar respostas ruins |
-| Transação que envolve a LLM | `@Transactional` no `generate` (cobre leitura do perfil + persistência final) | A transação fica aberta durante a chamada à LLM — aceitável no MVP, único usuário por vez; revisitar com pool real |
+| Transação que envolve a LLM | ~~`@Transactional` no `generate`~~ **Revisado:** `generate` sem transação de método; leitura e persistência usam as transações curtas dos repositórios, LLM fica fora | A transação aberta durante a chamada à LLM (60s + retries) segurava conexão do pool por geração — dívida paga pós-MVP |
 
 ## Etapa 8
 
