@@ -50,7 +50,9 @@ class DietGeneratorTest {
                 Atividade: {activityLevel} | Objetivo: {goal}
                 Restrições: {dietaryRestrictions}
                 Refeições: {mealsPerDay}
-                Calorias-alvo: {targetCalories} kcal
+                Calorias-alvo: {targetCalories} kcal (faixa {targetCaloriesMin}-{targetCaloriesMax})
+                Macros:
+                {macroGuidelines}
                 """.getBytes(StandardCharsets.UTF_8));
         generator = new DietGenerator(llm, new ObjectMapper(), template);
     }
@@ -72,7 +74,25 @@ class DietGeneratorTest {
         assertThat(prompt).contains("Restrições: sem lactose");
         assertThat(prompt).contains("Refeições: 4");
         assertThat(prompt).contains("Calorias-alvo: 3090 kcal");
+        assertThat(prompt).contains("faixa 2936-3245"); // ±5% de 3090
+        assertThat(prompt).contains("Proteína"); // bloco de macros foi injetado
         assertThat(prompt).doesNotContain("{");
+    }
+
+    @Test
+    void macroGuidelines_aumenta_proteina_em_objetivos_agressivos() {
+        Profile lossAgg = ProfileFixtures.of(Sex.MALE, 30, 80, 180,
+                ActivityLevel.MODERATE, Goal.AGGRESSIVE_LOSS, null);
+        Profile gainAgg = ProfileFixtures.of(Sex.MALE, 30, 80, 180,
+                ActivityLevel.MODERATE, Goal.AGGRESSIVE_GAIN, null);
+
+        // AGGRESSIVE_LOSS: 2.0–2.4 g/kg × 80kg = 160–192g
+        assertThat(DietGenerator.macroGuidelinesFor(lossAgg))
+                .contains("160").contains("192");
+
+        // AGGRESSIVE_GAIN: 1.8–2.2 g/kg × 80kg = 144–176g
+        assertThat(DietGenerator.macroGuidelinesFor(gainAgg))
+                .contains("144").contains("176");
     }
 
     @Test

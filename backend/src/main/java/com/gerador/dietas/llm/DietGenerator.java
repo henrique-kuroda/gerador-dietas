@@ -2,6 +2,7 @@ package com.gerador.dietas.llm;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gerador.dietas.domain.Goal;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.llm.LlmException.Kind;
 import com.gerador.dietas.metabolism.MetabolismResult;
@@ -41,6 +42,10 @@ public class DietGenerator {
 
     String buildPrompt(Profile profile, MetabolismResult metabolism) {
         String restrictions = profile.getDietaryRestrictions();
+        int target = metabolism.targetCalories();
+        int min = (int) Math.round(target * 0.95);
+        int max = (int) Math.round(target * 1.05);
+
         return promptTemplate
                 .replace("{sex}", profile.getSex().name())
                 .replace("{age}", String.valueOf(profile.getAge()))
@@ -50,13 +55,48 @@ public class DietGenerator {
                 .replace("{goal}", profile.getGoal().name())
                 .replace("{dietaryRestrictions}", (restrictions == null || restrictions.isBlank()) ? "nenhuma" : restrictions)
                 .replace("{mealsPerDay}", String.valueOf(profile.getMealsPerDay()))
-                .replace("{targetCalories}", String.valueOf(metabolism.targetCalories()));
+                .replace("{targetCalories}", String.valueOf(target))
+                .replace("{targetCaloriesMin}", String.valueOf(min))
+                .replace("{targetCaloriesMax}", String.valueOf(max))
+                .replace("{macroGuidelines}", macroGuidelinesFor(profile));
     }
 
     /**
-     * Remove cercas de código markdown que a LLM eventualmente adiciona
-     * (```json ... ``` ou ``` ... ```).
+     * Faixa de macros sugerida por objetivo. Valores são guia para a LLM compor
+     * o plano — a checagem hard é feita só nas calorias totais.
      */
+    static String macroGuidelinesFor(Profile profile) {
+        Goal goal = profile.getGoal();
+        double weight = profile.getWeightKg();
+        return switch (goal) {
+            case AGGRESSIVE_LOSS -> String.format(
+                    "- Proteína alta para preservar massa magra: %.0f a %.0f g (2.0–2.4 g/kg).%n" +
+                    "- Gordura: 20–25%% das calorias.%n" +
+                    "- Carboidrato: o restante das calorias.",
+                    weight * 2.0, weight * 2.4);
+            case LOSE_WEIGHT -> String.format(
+                    "- Proteína moderada-alta para preservar massa magra: %.0f a %.0f g (1.6–2.0 g/kg).%n" +
+                    "- Gordura: 25–30%% das calorias.%n" +
+                    "- Carboidrato: o restante das calorias.",
+                    weight * 1.6, weight * 2.0);
+            case MAINTAIN -> String.format(
+                    "- Proteína: %.0f a %.0f g (1.4–1.8 g/kg).%n" +
+                    "- Gordura: 25–30%% das calorias.%n" +
+                    "- Carboidrato: o restante das calorias.",
+                    weight * 1.4, weight * 1.8);
+            case GAIN_MUSCLE -> String.format(
+                    "- Proteína: %.0f a %.0f g (1.6–2.0 g/kg).%n" +
+                    "- Gordura: 20–30%% das calorias.%n" +
+                    "- Carboidrato: priorizar para suportar treino — o restante das calorias.",
+                    weight * 1.6, weight * 2.0);
+            case AGGRESSIVE_GAIN -> String.format(
+                    "- Proteína: %.0f a %.0f g (1.8–2.2 g/kg).%n" +
+                    "- Gordura: 20–30%% das calorias.%n" +
+                    "- Carboidrato: alto, para suportar superávit e treino — o restante das calorias.",
+                    weight * 1.8, weight * 2.2);
+        };
+    }
+
     static String stripCodeFences(String raw) {
         String text = raw.trim();
         if (!text.startsWith("```")) {

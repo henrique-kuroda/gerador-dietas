@@ -71,6 +71,28 @@ class MetabolismServiceTest {
     }
 
     @Test
+    void aplica_deficit_agressivo_de_30_porcento() {
+        Profile profile = ProfileFixtures.of(Sex.MALE, 30, 80, 180,
+                ActivityLevel.MODERATE, Goal.AGGRESSIVE_LOSS, null);
+
+        MetabolismResult result = service.calculate(profile);
+
+        // TMB=1780, TDEE=2759, alvo = 2759 × 0.70 = 1931,3
+        assertThat(result.targetCalories()).isEqualTo(1931);
+    }
+
+    @Test
+    void aplica_superavit_agressivo_de_20_porcento() {
+        Profile profile = ProfileFixtures.of(Sex.MALE, 30, 80, 180,
+                ActivityLevel.MODERATE, Goal.AGGRESSIVE_GAIN, null);
+
+        MetabolismResult result = service.calculate(profile);
+
+        // TMB=1780, TDEE=2759, alvo = 2759 × 1.20 = 3310,8
+        assertThat(result.targetCalories()).isEqualTo(3311);
+    }
+
+    @Test
     void aplica_fator_de_atividade_sedentary() {
         Profile profile = ProfileFixtures.of(Sex.MALE, 30, 80, 180,
                 ActivityLevel.SEDENTARY, Goal.MAINTAIN, null);

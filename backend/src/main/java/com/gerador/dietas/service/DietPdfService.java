@@ -3,6 +3,7 @@ package com.gerador.dietas.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gerador.dietas.domain.DietPlan;
+import com.gerador.dietas.domain.Goal;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.llm.DietContent;
 import com.lowagie.text.Chunk;
@@ -85,7 +86,7 @@ public class DietPdfService {
         addRow(table, "Peso", formatNumber(profile.getWeightKg()) + " kg");
         addRow(table, "Altura", formatNumber(profile.getHeightCm()) + " cm");
         addRow(table, "Nível de atividade", profile.getActivityLevel().name());
-        addRow(table, "Objetivo", profile.getGoal().name());
+        addRow(table, "Objetivo", goalLabel(profile.getGoal()));
         addRow(table, "Refeições/dia", String.valueOf(profile.getMealsPerDay()));
         if (profile.getBodyFatPercent() != null) {
             addRow(table, "% gordura", formatNumber(profile.getBodyFatPercent()) + "%");
@@ -205,5 +206,15 @@ public class DietPdfService {
             return String.valueOf((long) value);
         }
         return String.format(Locale.US, "%.1f", value);
+    }
+
+    private String goalLabel(Goal goal) {
+        return switch (goal) {
+            case AGGRESSIVE_LOSS -> "Perder peso — agressivo (-30%)";
+            case LOSE_WEIGHT -> "Perder peso (-20%)";
+            case MAINTAIN -> "Manter peso";
+            case GAIN_MUSCLE -> "Ganhar massa (+12%)";
+            case AGGRESSIVE_GAIN -> "Ganhar massa — agressivo (+20%)";
+        };
     }
 }
