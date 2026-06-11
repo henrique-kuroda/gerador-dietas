@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 import { login as loginRequest } from "../services/auth";
 import { extractApiErrorMessage } from "../services/api";
 import { AuthLayout } from "../components/AuthLayout";
@@ -42,10 +42,6 @@ export function LoginPage() {
     },
   });
 
-  useEffect(() => {
-    if (mutation.isPending) setServerError(null);
-  }, [mutation.isPending]);
-
   if (isAuthenticated) return <Navigate to="/" replace />;
 
   return (
@@ -60,7 +56,10 @@ export function LoginPage() {
     >
       <form
         className="space-y-4"
-        onSubmit={handleSubmit((values) => mutation.mutate(values))}
+        onSubmit={handleSubmit((values) => {
+          setServerError(null);
+          mutation.mutate(values);
+        })}
       >
         <TextField
           label="E-mail"

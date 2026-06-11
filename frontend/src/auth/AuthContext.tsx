@@ -1,29 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "../services/api";
 import { clearToken, getToken, setToken } from "../services/token";
 import type { MeResponse } from "../types";
-
-interface AuthUser {
-  name: string;
-  email: string;
-}
-
-interface AuthContextValue {
-  user: AuthUser | null;
-  isAuthenticated: boolean;
-  login: (token: string) => void;
-  logout: () => void;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue, type AuthUser } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setTokenState] = useState<string | null>(() => getToken());
@@ -32,10 +12,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Os dados do usuário vêm de GET /api/auth/me; o token é opaco para o front.
   // Token expirado/inválido cai no interceptor 401 do api, que limpa e redireciona.
   useEffect(() => {
-    if (!token) {
-      setUser(null);
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
     api
       .get<MeResponse>("/api/auth/me")
@@ -70,15 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: token !== null, login, logout }),
+    () => ({
+      user: token ? user : null,
+      isAuthenticated: token !== null,
+      login,
+      logout,
+    }),
     [user, token, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth precisa estar dentro de <AuthProvider>");
-  return ctx;
 }

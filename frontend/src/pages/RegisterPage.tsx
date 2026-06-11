@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 import { login as loginRequest, register as registerRequest } from "../services/auth";
 import { extractApiErrorMessage } from "../services/api";
 import { AuthLayout } from "../components/AuthLayout";

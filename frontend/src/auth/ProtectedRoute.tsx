@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
 import { getProfile } from "../services/profile";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {

@@ -50,7 +50,7 @@ export interface ProfileRequest {
   bodyFatPercent?: number | null;
 }
 
-export interface ProfileResponse extends ProfileRequest {}
+export type ProfileResponse = ProfileRequest;
 
 export interface DietMealItem {
   food: string;
