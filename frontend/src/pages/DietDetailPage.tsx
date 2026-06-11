@@ -25,9 +25,12 @@ export function DietDetailPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <Link to="/history" className="text-sm text-emerald-700 underline">
+    <div className="space-y-8">
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          to="/history"
+          className="text-[13px] text-[var(--color-ink-3)] hover:text-[var(--color-ink)]"
+        >
           ← Voltar ao histórico
         </Link>
         {query.data && (
@@ -38,24 +41,38 @@ export function DietDetailPage() {
               pdfMutation.mutate();
             }}
             disabled={pdfMutation.isPending}
-            className="rounded-md border border-emerald-600 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-60"
+            className="btn-ghost"
           >
-            {pdfMutation.isPending ? "Gerando PDF..." : "Baixar PDF"}
+            {pdfMutation.isPending ? (
+              <>
+                <span className="spinner" />
+                Gerando PDF
+              </>
+            ) : (
+              "Baixar PDF"
+            )}
           </button>
         )}
       </div>
 
-      {pdfError && <p className="text-sm text-red-600">{pdfError}</p>}
+      {pdfError && (
+        <p className="text-[13px] text-[var(--color-ink)]">{pdfError}</p>
+      )}
 
-      <Disclaimer />
-
-      {query.isLoading && <p className="text-slate-500">Carregando dieta...</p>}
+      {query.isLoading && (
+        <div className="py-16 flex items-center justify-center gap-2 text-[var(--color-ink-3)]">
+          <span className="spinner" />
+          <span className="text-[13px]">Carregando cardápio…</span>
+        </div>
+      )}
       {query.isError && (
-        <p className="text-sm text-red-600">
+        <p className="text-[13px] text-[var(--color-ink)]">
           {extractApiErrorMessage(query.error, "Falha ao carregar a dieta.")}
         </p>
       )}
       {query.data && <DietPlanView plan={query.data} />}
+
+      <Disclaimer />
     </div>
   );
 }

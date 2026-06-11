@@ -48,13 +48,10 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Criar conta"
-      subtitle="Cadastre-se para começar a gerar dietas"
+      subtitle="Cadastre-se em segundos para começar."
       footer={
         <>
-          Já tem conta?{" "}
-          <Link to="/login" className="text-emerald-700 underline">
-            Entrar
-          </Link>
+          Já tem conta? <Link to="/login" className="link">Entrar</Link>
         </>
       }
     >
@@ -68,6 +65,7 @@ export function RegisterPage() {
         <TextField
           label="Nome"
           autoComplete="name"
+          placeholder="Como prefere ser chamado"
           error={errors.name?.message}
           {...rhfRegister("name")}
         />
@@ -75,6 +73,7 @@ export function RegisterPage() {
           label="E-mail"
           type="email"
           autoComplete="email"
+          placeholder="voce@exemplo.com"
           error={errors.email?.message}
           {...rhfRegister("email")}
         />
@@ -82,19 +81,23 @@ export function RegisterPage() {
           label="Senha"
           type="password"
           autoComplete="new-password"
-          hint="mínimo de 8 caracteres"
+          placeholder="ao menos 8 caracteres"
+          hint="Recomendamos uma frase memorável."
           error={errors.password?.message}
           {...rhfRegister("password")}
         />
         {serverError && (
-          <p className="text-sm text-red-600">{serverError}</p>
+          <p className="text-[13px] text-[var(--color-ink)]">{serverError}</p>
         )}
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-        >
-          {mutation.isPending ? "Cadastrando..." : "Criar conta"}
+        <button type="submit" disabled={mutation.isPending} className="btn w-full">
+          {mutation.isPending ? (
+            <>
+              <span className="spinner" />
+              Cadastrando
+            </>
+          ) : (
+            "Criar conta"
+          )}
         </button>
       </form>
     </AuthLayout>

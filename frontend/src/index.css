@@ -1,12 +1,222 @@
 @import "tailwindcss";
 
-html, body, #root {
-  height: 100%;
+@theme {
+  --color-bg: #fafaf9;
+  --color-surface: #ffffff;
+  --color-ink: #0a0a0a;
+  --color-ink-2: #404040;
+  --color-ink-3: #737373;
+  --color-ink-4: #a3a3a3;
+  --color-ink-5: #d4d4d4;
+  --color-rule: #e7e5e4;
+  --color-rule-2: #f0eeec;
+  --color-accent: #15803d;
+
+  --font-sans: "Inter Tight", "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+    margin: 0;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+    color: inherit;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "cv11";
+  }
+}
+
+@layer components {
+  /* Tiny uppercase label */
+  .label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+  }
+
+  /* Hairline card */
+  .surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-radius: 6px;
+  }
+
+  /* Inputs — bordered, restrained */
+  .field {
+    width: 100%;
+    background: var(--color-surface);
+    border: 1px solid var(--color-rule);
+    border-radius: 6px;
+    padding: 0.625rem 0.75rem;
+    font-size: 14px;
+    color: var(--color-ink);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .field::placeholder {
+    color: var(--color-ink-4);
+  }
+  .field:hover:not(:focus):not(:disabled) {
+    border-color: var(--color-ink-5);
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--color-ink);
+    box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.06);
+  }
+  .field:disabled {
+    background: var(--color-rule-2);
+    color: var(--color-ink-3);
+    cursor: not-allowed;
+  }
+
+  select.field {
+    appearance: none;
+    padding-right: 2rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none' stroke='%23737373' stroke-width='1.2'><path d='M1 1 L5 5 L9 1'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+
+  textarea.field {
+    resize: vertical;
+    min-height: 4.5rem;
+    line-height: 1.5;
+  }
+
+  /* Primary button */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--color-ink);
+    color: var(--color-surface);
+    padding: 0.5625rem 0.875rem;
+    border: 1px solid var(--color-ink);
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.08s ease;
+  }
+  .btn:hover:not(:disabled) {
+    background: var(--color-ink-2);
+    border-color: var(--color-ink-2);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+  .btn:disabled {
+    background: var(--color-ink-4);
+    border-color: var(--color-ink-4);
+    cursor: not-allowed;
+  }
+
+  /* Secondary / ghost button */
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    padding: 0.5625rem 0.875rem;
+    border: 1px solid var(--color-rule);
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.12s ease, background 0.12s ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--color-ink);
+    background: var(--color-bg);
+  }
+  .btn-ghost:disabled {
+    color: var(--color-ink-4);
+    cursor: not-allowed;
+  }
+
+  /* Plain link */
+  .link {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--color-ink-5);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    transition: text-decoration-color 0.12s ease;
+  }
+  .link:hover {
+    text-decoration-color: var(--color-ink);
+  }
+
+  /* Soft entrance */
+  .enter {
+    animation: enter 0.35s ease-out both;
+  }
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Spinner — a thin rotating arc */
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    border-right-color: transparent;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }

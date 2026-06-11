@@ -8,7 +8,13 @@ const FORMULA_LABEL: Record<Formula, string> = {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString("pt-BR");
+    return new Date(iso).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
     return iso;
   }
@@ -16,73 +22,131 @@ function formatDate(iso: string): string {
 
 export function DietPlanView({ plan }: { plan: DietPlanResponse }) {
   const { content } = plan;
+  const totalMacros =
+    content.macros.proteinG + content.macros.carbsG + content.macros.fatG;
+  const pct = (g: number) =>
+    totalMacros > 0 ? Math.round((g / totalMacros) * 100) : 0;
+
   return (
-    <div className="space-y-6">
-      <header className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Dieta #{plan.id}
-          </h2>
-          <span className="text-xs text-slate-500">
-            Gerada em {formatDate(plan.createdAt)}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-slate-600">{content.summary}</p>
-
-        <dl className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-          <Metric label="TMB" value={`${plan.tmb} kcal`} />
-          <Metric label="TDEE" value={`${plan.tdee} kcal`} />
-          <Metric label="Alvo" value={`${plan.targetCalories} kcal`} />
-          <Metric label="Fórmula" value={FORMULA_LABEL[plan.formulaUsed]} />
-        </dl>
-
-        <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-          <Metric label="Proteína" value={`${content.macros.proteinG} g`} />
-          <Metric label="Carbo." value={`${content.macros.carbsG} g`} />
-          <Metric label="Gordura" value={`${content.macros.fatG} g`} />
-        </div>
+    <article className="space-y-10">
+      <header>
+        <p className="label">Cardápio #{plan.id}</p>
+        <h1 className="mt-2 text-[28px] font-medium tracking-tight leading-tight">
+          {content.summary}
+        </h1>
+        <p className="mt-2 text-[13px] tabular text-[var(--color-ink-3)]">
+          {formatDate(plan.createdAt)} · {FORMULA_LABEL[plan.formulaUsed]}
+        </p>
       </header>
 
-      <section className="space-y-4">
-        {content.meals.map((meal, i) => (
-          <article
-            key={`${meal.name}-${i}`}
-            className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
-          >
-            <div className="flex items-baseline justify-between">
-              <h3 className="font-semibold text-slate-900">{meal.name}</h3>
-              <span className="text-sm text-slate-500">
-                {meal.calories} kcal
-              </span>
-            </div>
-            <ul className="mt-3 divide-y divide-slate-100 text-sm">
-              {meal.items.map((item, j) => (
-                <li
-                  key={`${item.food}-${j}`}
-                  className="flex items-baseline justify-between py-2"
-                >
-                  <div>
-                    <p className="text-slate-800">{item.food}</p>
-                    <p className="text-xs text-slate-500">{item.portion}</p>
-                  </div>
-                  <span className="text-slate-600">{item.calories} kcal</span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
+      {/* Calorie ledger */}
+      <section className="surface grid grid-cols-3 divide-x divide-[var(--color-rule)]">
+        <Metric label="TMB" value={plan.tmb} unit="kcal" />
+        <Metric label="TDEE" value={plan.tdee} unit="kcal" />
+        <Metric label="Alvo" value={plan.targetCalories} unit="kcal" emphasis />
       </section>
+
+      {/* Macros */}
+      <section>
+        <h2 className="label mb-3">Macronutrientes</h2>
+        <div className="surface p-5 space-y-4">
+          <MacroBar label="Proteína" g={content.macros.proteinG} pct={pct(content.macros.proteinG)} />
+          <MacroBar label="Carboidrato" g={content.macros.carbsG} pct={pct(content.macros.carbsG)} />
+          <MacroBar label="Gordura" g={content.macros.fatG} pct={pct(content.macros.fatG)} />
+        </div>
+      </section>
+
+      {/* Meals */}
+      <section>
+        <h2 className="label mb-3">Refeições</h2>
+        <div className="space-y-3">
+          {content.meals.map((meal, i) => (
+            <article key={`${meal.name}-${i}`} className="surface p-5">
+              <header className="flex items-baseline justify-between gap-3 pb-3 mb-3 border-b border-[var(--color-rule)]">
+                <div className="flex items-baseline gap-3 min-w-0">
+                  <span className="text-[12px] tabular text-[var(--color-ink-4)]">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="text-[15px] font-medium tracking-tight truncate">
+                    {meal.name}
+                  </h3>
+                </div>
+                <span className="text-[13px] tabular text-[var(--color-ink-2)]">
+                  {meal.calories} kcal
+                </span>
+              </header>
+              <ul className="space-y-2">
+                {meal.items.map((item, j) => (
+                  <li
+                    key={`${item.food}-${j}`}
+                    className="grid grid-cols-[1fr_auto] items-baseline gap-3 py-0.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[14px] text-[var(--color-ink)] truncate">
+                        {item.food}
+                      </p>
+                      <p className="text-[12px] text-[var(--color-ink-3)]">
+                        {item.portion}
+                      </p>
+                    </div>
+                    <span className="text-[13px] tabular text-[var(--color-ink-3)]">
+                      {item.calories} kcal
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+    </article>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  unit,
+  emphasis,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="p-5">
+      <p className="label">{label}</p>
+      <p
+        className={`mt-1.5 text-[24px] font-medium tracking-tight tabular ${
+          emphasis ? "text-[var(--color-ink)]" : "text-[var(--color-ink-2)]"
+        }`}
+      >
+        {value}
+        <span className="ml-1 text-[12px] text-[var(--color-ink-3)] font-normal tracking-normal">
+          {unit}
+        </span>
+      </p>
     </div>
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function MacroBar({ label, g, pct }: { label: string; g: number; pct: number }) {
   return (
-    <div className="rounded-md bg-slate-50 px-3 py-2">
-      <dt className="text-xs uppercase tracking-wide text-slate-500">
-        {label}
-      </dt>
-      <dd className="text-sm font-medium text-slate-900">{value}</dd>
+    <div>
+      <div className="flex items-baseline justify-between mb-1.5 text-[13px]">
+        <span className="text-[var(--color-ink-2)]">{label}</span>
+        <span className="tabular text-[var(--color-ink-3)]">
+          <span className="text-[var(--color-ink)]">{g}g</span>
+          <span className="ml-2">{pct}%</span>
+        </span>
+      </div>
+      <div className="h-1 bg-[var(--color-rule-2)] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[var(--color-ink)] transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }

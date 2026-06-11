@@ -7,7 +7,12 @@ export type ActivityLevel =
   | "ACTIVE"
   | "VERY_ACTIVE";
 
-export type Goal = "LOSE_WEIGHT" | "MAINTAIN" | "GAIN_MUSCLE";
+export type Goal =
+  | "AGGRESSIVE_LOSS"
+  | "LOSE_WEIGHT"
+  | "MAINTAIN"
+  | "GAIN_MUSCLE"
+  | "AGGRESSIVE_GAIN";
 
 export type Formula = "HARRIS_BENEDICT" | "MIFFLIN_ST_JEOR" | "KATCH_MCARDLE";
 

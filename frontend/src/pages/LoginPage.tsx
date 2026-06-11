@@ -51,13 +51,10 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Entrar"
-      subtitle="Acesse sua conta para gerar dietas"
+      subtitle="Acesse sua conta para gerar e revisar dietas."
       footer={
         <>
-          Ainda não tem conta?{" "}
-          <Link to="/register" className="text-emerald-700 underline">
-            Cadastre-se
-          </Link>
+          Ainda não tem conta? <Link to="/register" className="link">Cadastre-se</Link>
         </>
       }
     >
@@ -69,6 +66,7 @@ export function LoginPage() {
           label="E-mail"
           type="email"
           autoComplete="email"
+          placeholder="voce@exemplo.com"
           error={errors.email?.message}
           {...register("email")}
         />
@@ -76,18 +74,22 @@ export function LoginPage() {
           label="Senha"
           type="password"
           autoComplete="current-password"
+          placeholder="••••••••"
           error={errors.password?.message}
           {...register("password")}
         />
         {serverError && (
-          <p className="text-sm text-red-600">{serverError}</p>
+          <p className="text-[13px] text-[var(--color-ink)]">{serverError}</p>
         )}
-        <button
-          type="submit"
-          disabled={mutation.isPending}
-          className="w-full rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-        >
-          {mutation.isPending ? "Entrando..." : "Entrar"}
+        <button type="submit" disabled={mutation.isPending} className="btn w-full">
+          {mutation.isPending ? (
+            <>
+              <span className="spinner" />
+              Entrando
+            </>
+          ) : (
+            "Entrar"
+          )}
         </button>
       </form>
     </AuthLayout>

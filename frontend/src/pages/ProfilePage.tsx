@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProfile, saveProfile } from "../services/profile";
 import { extractApiErrorMessage } from "../services/api";
-import { SelectField, TextField } from "../components/FormField";
+import { FieldShell, SelectField, TextField } from "../components/FormField";
 import type { ProfileRequest } from "../types";
+import { GOAL_LABELS } from "../types/labels";
 
 const schema = z.object({
   weightKg: z.coerce.number().positive("deve ser maior que zero").max(500),
@@ -24,7 +26,13 @@ const schema = z.object({
     "ACTIVE",
     "VERY_ACTIVE",
   ]),
-  goal: z.enum(["LOSE_WEIGHT", "MAINTAIN", "GAIN_MUSCLE"]),
+  goal: z.enum([
+    "AGGRESSIVE_LOSS",
+    "LOSE_WEIGHT",
+    "MAINTAIN",
+    "GAIN_MUSCLE",
+    "AGGRESSIVE_GAIN",
+  ]),
   dietaryRestrictions: z.string().max(1000).optional(),
   mealsPerDay: z.coerce.number().int().min(1).max(8),
   bodyFatPercent: z
@@ -43,14 +51,13 @@ const ACTIVITY_LABELS: Record<ProfileRequest["activityLevel"], string> = {
   VERY_ACTIVE: "Muito ativo / trabalho físico",
 };
 
-const GOAL_LABELS: Record<ProfileRequest["goal"], string> = {
-  LOSE_WEIGHT: "Perder peso",
-  MAINTAIN: "Manter peso",
-  GAIN_MUSCLE: "Ganhar massa",
-};
-
 export function ProfilePage() {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const requireProfile =
+    (location.state as { requireProfile?: boolean } | null)?.requireProfile ??
+    false;
   const [feedback, setFeedback] = useState<
     { kind: "success" | "error"; message: string } | null
   >(null);
@@ -59,6 +66,8 @@ export function ProfilePage() {
     queryKey: ["profile"],
     queryFn: getProfile,
   });
+
+  const isFirstTime = !profileQuery.isLoading && profileQuery.data == null;
 
   const {
     register,
@@ -110,8 +119,12 @@ export function ProfilePage() {
       return saveProfile(payload);
     },
     onSuccess: (data) => {
+      const wasFirstTime = isFirstTime;
       queryClient.setQueryData(["profile"], data);
-      setFeedback({ kind: "success", message: "Perfil salvo com sucesso." });
+      setFeedback({ kind: "success", message: "Perfil salvo." });
+      if (wasFirstTime) {
+        navigate("/", { replace: true });
+      }
     },
     onError: (err) => {
       setFeedback({
@@ -122,132 +135,189 @@ export function ProfilePage() {
   });
 
   if (profileQuery.isLoading) {
-    return <p className="text-slate-500">Carregando perfil...</p>;
+    return (
+      <div className="py-20 flex items-center justify-center gap-2 text-[var(--color-ink-3)]">
+        <span className="spinner" />
+        <span className="text-[13px]">Carregando perfil…</span>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Seu perfil</h1>
-        <p className="text-sm text-slate-500">
-          Esses dados são usados para calcular suas calorias-alvo e gerar dietas
-          personalizadas.
+    <div className="space-y-10">
+      <header>
+        <h1 className="text-[32px] font-medium tracking-tight leading-tight">
+          Perfil
+        </h1>
+        <p className="mt-2 text-[15px] text-[var(--color-ink-3)]">
+          Esses dados são usados para calcular calorias-alvo e gerar dietas.
         </p>
-      </div>
+        {(requireProfile || isFirstTime) && (
+          <p className="mt-4 text-[13px] text-[var(--color-ink-2)] border-l-2 border-[var(--color-ink)] pl-3">
+            Para continuar, preencha seu perfil antropométrico. Você não
+            poderá gerar cardápios sem ele.
+          </p>
+        )}
+      </header>
 
       <form
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
         onSubmit={handleSubmit((values) => {
           setFeedback(null);
           mutation.mutate(values);
         })}
+        className="space-y-8"
       >
-        <TextField
-          label="Peso (kg)"
-          type="number"
-          step="0.1"
-          error={errors.weightKg?.message}
-          {...register("weightKg")}
-        />
-        <TextField
-          label="Altura (cm)"
-          type="number"
-          step="0.1"
-          error={errors.heightCm?.message}
-          {...register("heightCm")}
-        />
-        <TextField
-          label="Idade"
-          type="number"
-          error={errors.age?.message}
-          {...register("age")}
-        />
-        <SelectField
-          label="Sexo"
-          error={errors.sex?.message}
-          {...register("sex")}
-        >
-          <option value="MALE">Masculino</option>
-          <option value="FEMALE">Feminino</option>
-        </SelectField>
-        <SelectField
-          label="Nível de atividade"
-          error={errors.activityLevel?.message}
-          {...register("activityLevel")}
-        >
-          {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField
-          label="Objetivo"
-          error={errors.goal?.message}
-          {...register("goal")}
-        >
-          {Object.entries(GOAL_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </SelectField>
-        <TextField
-          label="Refeições por dia"
-          type="number"
-          min={1}
-          max={8}
-          error={errors.mealsPerDay?.message}
-          {...register("mealsPerDay")}
-        />
-        <TextField
-          label="% de gordura corporal (opcional)"
-          type="number"
-          step="0.1"
-          hint="se informado, usamos a fórmula Katch-McArdle"
-          error={errors.bodyFatPercent?.message as string | undefined}
-          {...register("bodyFatPercent")}
-        />
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Restrições alimentares (opcional)
-          </label>
-          <textarea
-            rows={3}
-            placeholder="Ex.: sem lactose, vegetariano, alergia a amendoim"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            {...register("dietaryRestrictions")}
-          />
-          {errors.dietaryRestrictions?.message && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.dietaryRestrictions.message}
-            </p>
-          )}
-        </div>
+        <Section title="Antropometria" description="Medidas básicas.">
+          <Grid cols={3}>
+            <TextField
+              label="Peso (kg)"
+              type="number"
+              step="0.1"
+              placeholder="80"
+              error={errors.weightKg?.message}
+              {...register("weightKg")}
+            />
+            <TextField
+              label="Altura (cm)"
+              type="number"
+              step="0.1"
+              placeholder="180"
+              error={errors.heightCm?.message}
+              {...register("heightCm")}
+            />
+            <TextField
+              label="Idade"
+              type="number"
+              placeholder="30"
+              error={errors.age?.message}
+              {...register("age")}
+            />
+          </Grid>
+        </Section>
 
-        <div className="sm:col-span-2 flex items-center justify-between">
-          {feedback ? (
-            <p
-              className={`text-sm ${
-                feedback.kind === "success"
-                  ? "text-emerald-700"
-                  : "text-red-600"
-              }`}
+        <Section title="Estilo & objetivo" description="Define o fator de atividade e o ajuste calórico.">
+          <Grid cols={2}>
+            <SelectField label="Sexo biológico" error={errors.sex?.message} {...register("sex")}>
+              <option value="MALE">Masculino</option>
+              <option value="FEMALE">Feminino</option>
+            </SelectField>
+            <SelectField
+              label="Nível de atividade"
+              error={errors.activityLevel?.message}
+              {...register("activityLevel")}
             >
-              {feedback.message}
-            </p>
-          ) : (
-            <span />
-          )}
+              {Object.entries(ACTIVITY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </SelectField>
+            <SelectField label="Objetivo" error={errors.goal?.message} {...register("goal")}>
+              {Object.entries(GOAL_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </SelectField>
+            <TextField
+              label="Refeições por dia"
+              type="number"
+              min={1}
+              max={8}
+              placeholder="4"
+              error={errors.mealsPerDay?.message}
+              {...register("mealsPerDay")}
+            />
+          </Grid>
+        </Section>
+
+        <Section
+          title="Refinamentos"
+          description="Opcionais — usados para afinar o cálculo e respeitar restrições."
+        >
+          <Grid cols={2}>
+            <TextField
+              label="% de gordura corporal"
+              type="number"
+              step="0.1"
+              placeholder="opcional"
+              hint="Se informado, usamos Katch-McArdle no lugar de Mifflin."
+              error={errors.bodyFatPercent?.message as string | undefined}
+              {...register("bodyFatPercent")}
+            />
+            <FieldShell label="Restrições alimentares">
+              <textarea
+                rows={3}
+                placeholder="ex.: sem lactose, vegetariano"
+                className="field"
+                {...register("dietaryRestrictions")}
+              />
+              {errors.dietaryRestrictions?.message && (
+                <p className="mt-1.5 text-xs text-[var(--color-ink)]">
+                  {errors.dietaryRestrictions.message}
+                </p>
+              )}
+            </FieldShell>
+          </Grid>
+        </Section>
+
+        <div className="flex items-center justify-between gap-4 pt-2">
+          <div className="min-h-[1.25rem]">
+            {feedback && (
+              <p
+                className={`text-[13px] ${
+                  feedback.kind === "success"
+                    ? "text-[var(--color-accent)]"
+                    : "text-[var(--color-ink)]"
+                }`}
+              >
+                {feedback.message}
+              </p>
+            )}
+          </div>
           <button
             type="submit"
             disabled={mutation.isPending || !isDirty}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+            className="btn"
           >
-            {mutation.isPending ? "Salvando..." : "Salvar perfil"}
+            {mutation.isPending ? (
+              <>
+                <span className="spinner" />
+                Salvando
+              </>
+            ) : (
+              "Salvar perfil"
+            )}
           </button>
         </div>
       </form>
     </div>
   );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="grid sm:grid-cols-[12rem_1fr] gap-4 sm:gap-8 pb-8 border-b border-[var(--color-rule)] last:border-b-0 last:pb-0">
+      <div>
+        <h2 className="text-[15px] font-medium tracking-tight">{title}</h2>
+        <p className="mt-1 text-[13px] text-[var(--color-ink-3)] leading-relaxed">
+          {description}
+        </p>
+      </div>
+      <div>{children}</div>
+    </section>
+  );
+}
+
+function Grid({ cols, children }: { cols: 2 | 3; children: React.ReactNode }) {
+  const cls = cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
+  return <div className={`grid grid-cols-1 ${cls} gap-4`}>{children}</div>;
 }
