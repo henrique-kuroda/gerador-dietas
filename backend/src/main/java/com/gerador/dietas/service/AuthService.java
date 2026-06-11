@@ -3,6 +3,7 @@ package com.gerador.dietas.service;
 import com.gerador.dietas.domain.User;
 import com.gerador.dietas.dto.AuthResponse;
 import com.gerador.dietas.dto.LoginRequest;
+import com.gerador.dietas.dto.MeResponse;
 import com.gerador.dietas.dto.RegisterRequest;
 import com.gerador.dietas.exception.EmailAlreadyExistsException;
 import com.gerador.dietas.repository.UserRepository;
@@ -41,6 +42,15 @@ public class AuthService {
         }
         User user = new User(email, passwordEncoder.encode(request.password()), request.name().trim());
         userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public MeResponse me(Long userId) {
+        // O JWT já foi validado pelo filtro; se o id não existe mais, a conta foi
+        // removida e o token não vale nada.
+        return userRepository.findById(userId)
+                .map(MeResponse::from)
+                .orElseThrow(() -> new IllegalStateException("Usuário do token não existe mais"));
     }
 
     public AuthResponse login(LoginRequest request) {

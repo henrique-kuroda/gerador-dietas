@@ -32,6 +32,12 @@ export interface AuthResponse {
   expiresIn: number;
 }
 
+export interface MeResponse {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface ProfileRequest {
   weightKg: number;
   heightCm: number;

@@ -7,15 +7,12 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
+import { api } from "../services/api";
 import { clearToken, getToken, setToken } from "../services/token";
-
-interface JwtPayload {
-  sub?: string;
-  email?: string;
-  exp?: number;
-}
+import type { MeResponse } from "../types";
 
 interface AuthUser {
+  name: string;
   email: string;
 }
 
@@ -28,52 +25,53 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function decode(token: string): JwtPayload | null {
-  try {
-    const payload = token.split(".")[1];
-    if (!payload) return null;
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = atob(base64);
-    return JSON.parse(decoded) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
-function userFromToken(token: string | null): AuthUser | null {
-  if (!token) return null;
-  const payload = decode(token);
-  if (!payload?.email) return null;
-  if (payload.exp && payload.exp * 1000 < Date.now()) return null;
-  return { email: payload.email };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(() =>
-    userFromToken(getToken())
-  );
+  const [token, setTokenState] = useState<string | null>(() => getToken());
+  const [user, setUser] = useState<AuthUser | null>(null);
 
-  const login = useCallback((token: string) => {
-    setToken(token);
-    setUser(userFromToken(token));
+  // Os dados do usuário vêm de GET /api/auth/me; o token é opaco para o front.
+  // Token expirado/inválido cai no interceptor 401 do api, que limpa e redireciona.
+  useEffect(() => {
+    if (!token) {
+      setUser(null);
+      return;
+    }
+    let cancelled = false;
+    api
+      .get<MeResponse>("/api/auth/me")
+      .then((res) => {
+        if (!cancelled) setUser({ name: res.data.name, email: res.data.email });
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const login = useCallback((newToken: string) => {
+    setToken(newToken);
+    setTokenState(newToken);
   }, []);
 
   const logout = useCallback(() => {
     clearToken();
+    setTokenState(null);
     setUser(null);
   }, []);
 
   useEffect(() => {
     function syncFromStorage() {
-      setUser(userFromToken(getToken()));
+      setTokenState(getToken());
     }
     window.addEventListener("storage", syncFromStorage);
     return () => window.removeEventListener("storage", syncFromStorage);
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, login, logout }),
-    [user, login, logout]
+    () => ({ user, isAuthenticated: token !== null, login, logout }),
+    [user, token, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
