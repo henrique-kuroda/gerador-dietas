@@ -72,17 +72,47 @@ public class DietGenerator {
 
     public DietGeneratorResult generate(Profile profile, MetabolismResult metabolism) {
         String prompt = buildPrompt(profile, metabolism);
+        DietContent content = requestAndParse(prompt);
+
+        List<String> violations = DietContentValidator.validate(content, metabolism.targetCalories());
+        if (violations.isEmpty()) {
+            return new DietGeneratorResult(content, prompt);
+        }
+
+        // Uma única re-tentativa, com as violações anexadas ao prompt.
+        log.warn("Plano violou regras nutricionais, re-tentando uma vez: {}", violations);
+        String retryPrompt = prompt + retryInstructions(violations);
+        DietContent retried = requestAndParse(retryPrompt);
+
+        List<String> remaining = DietContentValidator.validate(retried, metabolism.targetCalories());
+        if (!remaining.isEmpty()) {
+            throw new LlmException(Kind.INVALID_RESPONSE,
+                    "Plano fora das regras nutricionais mesmo após re-tentativa: "
+                            + String.join("; ", remaining));
+        }
+        return new DietGeneratorResult(retried, retryPrompt);
+    }
+
+    private DietContent requestAndParse(String prompt) {
         String raw = llmService.generateJson(prompt, RESPONSE_SCHEMA);
-        String cleaned = stripCodeFences(raw);
-        DietContent content = parse(cleaned);
-        return new DietGeneratorResult(content, prompt);
+        return parse(stripCodeFences(raw));
+    }
+
+    private static String retryInstructions(List<String> violations) {
+        StringBuilder sb = new StringBuilder(
+                "\n\nATENÇÃO: o plano anterior violou as regras abaixo. "
+                        + "Gere um novo plano corrigindo TODOS os pontos:\n");
+        for (String violation : violations) {
+            sb.append("- ").append(violation).append('\n');
+        }
+        return sb.toString();
     }
 
     String buildPrompt(Profile profile, MetabolismResult metabolism) {
         String restrictions = profile.getDietaryRestrictions();
         int target = metabolism.targetCalories();
-        int min = (int) Math.round(target * 0.95);
-        int max = (int) Math.round(target * 1.05);
+        int min = (int) Math.round(target * (1 - DietContentValidator.CALORIE_RANGE_TOLERANCE));
+        int max = (int) Math.round(target * (1 + DietContentValidator.CALORIE_RANGE_TOLERANCE));
 
         return promptTemplate
                 .replace("{sex}", profile.getSex().name())

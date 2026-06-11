@@ -15,15 +15,21 @@ import org.springframework.core.io.Resource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DietGeneratorTest {
 
+    // Plano coerente com target 2207 kcal (faixa ±5%: 2097-2317): refeições somam
+    // 2200, itens batem com cada refeição e nenhuma passa de 40% do total.
     private static final String VALID_JSON = """
             {
-              "summary": "Plano de 2200 kcal para ganho de massa, 4 refeições.",
+              "summary": "Plano de 2200 kcal em 4 refeições.",
               "totalCalories": 2200,
               "meals": [
                 {
@@ -31,7 +37,33 @@ class DietGeneratorTest {
                   "calories": 550,
                   "items": [
                     { "food": "Ovos mexidos", "portion": "3 unidades", "calories": 230 },
-                    { "food": "Pão integral", "portion": "2 fatias", "calories": 160 }
+                    { "food": "Pão integral", "portion": "2 fatias", "calories": 160 },
+                    { "food": "Banana com aveia", "portion": "1 unidade + 2 col.", "calories": 160 }
+                  ]
+                },
+                {
+                  "name": "Almoço",
+                  "calories": 700,
+                  "items": [
+                    { "food": "Arroz e feijão", "portion": "5 colheres + concha", "calories": 300 },
+                    { "food": "Frango grelhado", "portion": "150 g", "calories": 250 },
+                    { "food": "Salada com azeite", "portion": "à vontade + 1 fio", "calories": 150 }
+                  ]
+                },
+                {
+                  "name": "Lanche da tarde",
+                  "calories": 350,
+                  "items": [
+                    { "food": "Iogurte natural", "portion": "1 pote", "calories": 200 },
+                    { "food": "Castanhas", "portion": "20 g", "calories": 150 }
+                  ]
+                },
+                {
+                  "name": "Jantar",
+                  "calories": 600,
+                  "items": [
+                    { "food": "Carne moída com batata", "portion": "300 g", "calories": 350 },
+                    { "food": "Legumes refogados", "portion": "1 prato", "calories": 250 }
                   ]
                 }
               ],
@@ -115,7 +147,7 @@ class DietGeneratorTest {
         DietGeneratorResult result = generator.generate(profile, metabolism);
 
         assertThat(result.content().totalCalories()).isEqualTo(2200);
-        assertThat(result.content().meals()).hasSize(1);
+        assertThat(result.content().meals()).hasSize(4);
         assertThat(result.content().meals().get(0).name()).isEqualTo("Café da manhã");
         assertThat(result.content().macros().proteinG()).isEqualTo(150);
         assertThat(result.prompt()).contains("Calorias-alvo: 2207");
@@ -165,6 +197,66 @@ class DietGeneratorTest {
     }
 
     @Test
+    void retenta_uma_vez_com_violacoes_anexadas_ao_prompt() {
+        // Primeiro plano fora da faixa (uma refeição de 550 kcal vs target 2207);
+        // segundo plano válido.
+        llm.queuedResponses.add("""
+                {
+                  "summary": "incompleto",
+                  "totalCalories": 550,
+                  "meals": [
+                    {
+                      "name": "Café da manhã",
+                      "calories": 550,
+                      "items": [ { "food": "Ovos", "portion": "3", "calories": 550 } ]
+                    }
+                  ],
+                  "macros": { "proteinG": 40, "carbsG": 30, "fatG": 25 }
+                }
+                """);
+        llm.queuedResponses.add(VALID_JSON);
+
+        DietGeneratorResult result = generator.generate(padraoMale(),
+                new MetabolismResult(1780, 2759, 2207, Formula.MIFFLIN_ST_JEOR));
+
+        assertThat(result.content().totalCalories()).isEqualTo(2200);
+        assertThat(llm.promptsReceived).hasSize(2);
+        assertThat(llm.promptsReceived.get(1))
+                .contains("violou as regras")
+                .contains("fora da faixa");
+        assertThat(result.prompt()).isEqualTo(llm.promptsReceived.get(1));
+    }
+
+    @Test
+    void falha_quando_re_tentativa_tambem_viola_regras() {
+        String invalido = """
+                {
+                  "summary": "sempre fora da faixa",
+                  "totalCalories": 550,
+                  "meals": [
+                    {
+                      "name": "Refeição única",
+                      "calories": 550,
+                      "items": [ { "food": "Ovos", "portion": "3", "calories": 550 } ]
+                    }
+                  ],
+                  "macros": { "proteinG": 40, "carbsG": 30, "fatG": 25 }
+                }
+                """;
+        llm.queuedResponses.add(invalido);
+        llm.queuedResponses.add(invalido);
+
+        assertThatThrownBy(() -> generator.generate(padraoMale(),
+                new MetabolismResult(1780, 2759, 2207, Formula.MIFFLIN_ST_JEOR)))
+                .isInstanceOf(LlmException.class)
+                .hasMessageContaining("regras nutricionais")
+                .extracting(ex -> ((LlmException) ex).getKind())
+                .isEqualTo(LlmException.Kind.INVALID_RESPONSE);
+
+        assertThat(llm.promptsReceived).hasSize(2);
+    }
+
+    @Test
     void strip_code_fences_quando_nao_ha_cerca_retorna_original_trimmed() {
         assertThat(DietGenerator.stripCodeFences("  {\"a\":1}  ")).isEqualTo("{\"a\":1}");
     }
@@ -176,10 +268,13 @@ class DietGeneratorTest {
 
     private static final class StubLlmService implements LlmService {
         String responseBody = "";
+        final Deque<String> queuedResponses = new ArrayDeque<>();
+        final List<String> promptsReceived = new ArrayList<>();
 
         @Override
         public String generateJson(String prompt) {
-            return responseBody;
+            promptsReceived.add(prompt);
+            return queuedResponses.isEmpty() ? responseBody : queuedResponses.poll();
         }
     }
 }
