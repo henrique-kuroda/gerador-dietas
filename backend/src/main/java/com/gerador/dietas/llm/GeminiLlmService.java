@@ -11,6 +11,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +31,11 @@ public class GeminiLlmService implements LlmService {
 
     @Override
     public String generateJson(String prompt) {
+        return generateJson(prompt, null);
+    }
+
+    @Override
+    public String generateJson(String prompt, Map<String, Object> responseSchema) {
         if (props.apiKey() == null || props.apiKey().isBlank()) {
             log.error("GEMINI_API_KEY não foi injetada no processo. Confira variáveis de ambiente / .env.");
             throw new LlmException(Kind.CONFIGURATION, "GEMINI_API_KEY não configurada");
@@ -42,7 +48,7 @@ public class GeminiLlmService implements LlmService {
         LlmException last = null;
         for (int attempt = 0; attempt < BACKOFF_MS.length; attempt++) {
             try {
-                return callGemini(prompt);
+                return callGemini(prompt, responseSchema);
             } catch (LlmException ex) {
                 last = ex;
                 if (ex.getKind() != Kind.UNAVAILABLE && ex.getKind() != Kind.RATE_LIMITED) {
@@ -59,16 +65,20 @@ public class GeminiLlmService implements LlmService {
         throw last;
     }
 
-    private String callGemini(String prompt) {
+    private String callGemini(String prompt, Map<String, Object> responseSchema) {
         URI uri = URI.create(
                 props.baseUrl() + "/v1beta/models/" + props.model() + ":generateContent");
 
+        Map<String, Object> generationConfig = new LinkedHashMap<>();
+        generationConfig.put("responseMimeType", "application/json");
+        generationConfig.put("temperature", 0.7);
+        if (responseSchema != null) {
+            generationConfig.put("responseSchema", responseSchema);
+        }
+
         Map<String, Object> body = Map.of(
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
-                "generationConfig", Map.of(
-                        "responseMimeType", "application/json",
-                        "temperature", 0.7
-                )
+                "generationConfig", generationConfig
         );
 
         try {

@@ -14,11 +14,49 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class DietGenerator {
 
     private static final Logger log = LoggerFactory.getLogger(DietGenerator.class);
+
+    /**
+     * Espelho de {@link DietContent} no formato de responseSchema do Gemini
+     * (subset OpenAPI): força o JSON na decodificação, em vez de confiar só no
+     * prompt. O stripCodeFences continua como cinto de segurança.
+     */
+    static final Map<String, Object> RESPONSE_SCHEMA = Map.of(
+            "type", "OBJECT",
+            "required", List.of("summary", "totalCalories", "meals", "macros"),
+            "properties", Map.of(
+                    "summary", Map.of("type", "STRING"),
+                    "totalCalories", Map.of("type", "INTEGER"),
+                    "meals", Map.of(
+                            "type", "ARRAY",
+                            "items", Map.of(
+                                    "type", "OBJECT",
+                                    "required", List.of("name", "calories", "items"),
+                                    "properties", Map.of(
+                                            "name", Map.of("type", "STRING"),
+                                            "calories", Map.of("type", "INTEGER"),
+                                            "items", Map.of(
+                                                    "type", "ARRAY",
+                                                    "items", Map.of(
+                                                            "type", "OBJECT",
+                                                            "required", List.of("food", "portion", "calories"),
+                                                            "properties", Map.of(
+                                                                    "food", Map.of("type", "STRING"),
+                                                                    "portion", Map.of("type", "STRING"),
+                                                                    "calories", Map.of("type", "INTEGER"))))))),
+                    "macros", Map.of(
+                            "type", "OBJECT",
+                            "required", List.of("proteinG", "carbsG", "fatG"),
+                            "properties", Map.of(
+                                    "proteinG", Map.of("type", "INTEGER"),
+                                    "carbsG", Map.of("type", "INTEGER"),
+                                    "fatG", Map.of("type", "INTEGER")))));
 
     private final LlmService llmService;
     private final ObjectMapper objectMapper;
@@ -34,7 +72,7 @@ public class DietGenerator {
 
     public DietGeneratorResult generate(Profile profile, MetabolismResult metabolism) {
         String prompt = buildPrompt(profile, metabolism);
-        String raw = llmService.generateJson(prompt);
+        String raw = llmService.generateJson(prompt, RESPONSE_SCHEMA);
         String cleaned = stripCodeFences(raw);
         DietContent content = parse(cleaned);
         return new DietGeneratorResult(content, prompt);
