@@ -123,3 +123,41 @@ Registro de decisões não especificadas explicitamente no documento de requisit
 | Endpoint `/pdf` | `produces=application/pdf`, `Content-Disposition: attachment` com nome `dieta-{id}.pdf` | Comportamento padrão de download; nome previsível para usuário e testes. |
 | Download no front | Axios com `responseType: "blob"` + `URL.createObjectURL` + `<a download>` programático | Header `Authorization` (JWT) precisa ir junto, então `<a href>` simples não serve. |
 | Documentação Swagger | `@Operation` por endpoint no `DietController` | Garante que `/swagger-ui.html` mostre os 4 endpoints com descrição legível, incluindo o `/pdf`. |
+
+## Pós-MVP — melhorias funcionais
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Goal — set ampliado | 5 níveis: AGGRESSIVE_LOSS (×0.70), LOSE_WEIGHT (×0.80), MAINTAIN (×1.00), GAIN_MUSCLE (×1.12), AGGRESSIVE_GAIN (×1.20) | Cobre desde cutting agressivo até bulking limpo; mantém os 3 originais como pontos centrais |
+| Migration V2 | `ALTER CONSTRAINT chk_profiles_goal_valid` | Necessário porque o CHECK na V1 lista os valores explicitamente; Hibernate `validate` falharia sem isso |
+| Tolerância de kcal no prompt | ±5% (faixa min/max enviada à LLM) | LLM tende a ignorar "aproximadamente"; faixa explícita reduz desvio sem rigidez excessiva |
+| Macros guiados por objetivo | Calculado no `DietGenerator.macroGuidelinesFor(profile)` em g/kg | Cutting precisa mais proteína para preservar massa magra; bulking precisa de carbo. Calcular no back-end garante consistência — não depende da LLM lembrar a regra |
+| Contexto brasileiro | Adicionado ao prompt explicitamente (arroz/feijão/ovos, frutas da estação) | Sem isso, Gemini puxa para alimentos genéricos/americanos (oats, quinoa, kale). Mais útil e barato para o usuário-alvo |
+| Variedade e distribuição | Regras adicionadas (não repetir > 2x, max 40% kcal por refeição, porções mensuráveis) | Resposta sem essas regras vinha repetitiva e com "à vontade" — inutilizável |
+| Hidratação no summary | Pedida explicitamente no prompt | Item de baixo custo que entrega valor educativo extra |
+| Labels do Goal | Arquivo único `frontend/src/types/labels.ts` (long + short) | Evita 3 cópias do mesmo mapa (ProfilePage, DashboardPage, PDF) |
+| Goal label no PDF | `switch` no `DietPdfService.goalLabel()` | Spec do PDF exige rótulo legível; manter mapeamento no Java evita acoplar back ao front |
+| Guard de perfil | `ProtectedRoute` faz `useQuery` de `/api/profile`; se 404, redireciona para `/profile` (exceto se já estiver lá) | UX: usuário não fica preso num dashboard inútil. `staleTime: 60s` evita refetch a cada navegação |
+| UX pós-cadastro | Após primeiro save bem-sucedido em `/profile`, redireciona para `/` | Sem isso o usuário fica perdido tentando achar onde gerar dieta |
+| Banner de perfil obrigatório | Aparece quando `requireProfile` state ou `data == null` | Explica ao usuário por que ele foi parado nessa página |
+
+## Redesign do front-end (out-of-spec, pós Etapa 9)
+
+Primeira tentativa foi um direcional editorial/cookbook (Fraunces + paleta bone/moss/clay, ornamentos, itálicos) — descartado por ser barulhento demais. Direção final: minimalismo refinado, monocromático.
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Direção visual | Minimalismo monocromático (Linear/Vercel-style) | Usuário pediu algo mais minimalista após primeira iteração maximalista; foco em clareza e densidade controlada |
+| Tipografia | `Inter Tight` (única família) + `JetBrains Mono` (números tabulares) | Inter Tight é menos clichê que Inter padrão; peso (300/400/500) carrega toda a hierarquia |
+| Paleta | off-white `#fafaf9` + cinzas neutros + tinta `#0a0a0a` + um único accent verde `#15803d` reservado para o dot do logo | Achromática quase pura; verde só como marcador identitário, não como cor de botão |
+| Sistema de classes | CSS custom em `@layer components` (surface, field, btn, btn-ghost, label, link, spinner) | Tailwind v4 + camada de componentes; nomes curtos e reutilizáveis |
+| Inputs | Bordered (1px) + 6px radius + focus ring sutil (3px shadow black/6%) | Padrão Linear/Vercel; affordance clara sem ruído |
+| Botão primário | Preto (`--color-ink`) com texto branco; ghost = branco com borda 1px | Sem cor → sem ambiguidade de "qual é a ação principal" |
+| Cards/superfícies | `surface` = branco + 1px border + 6px radius, sem shadow | Hairlines em vez de elevação; mais quieto, mais escaneável |
+| Background | `#fafaf9` puro, sem textura, sem gradient | Compromisso total com restraint |
+| Animação | `enter` (fade + slide 4px) via `key={pathname}`; sem libs | Transição perceptível sem ser performática |
+| Loader | `.spinner` (arco rotativo 1.5px) | Substituto silencioso para qualquer animação ornamental |
+| Hierarquia tipográfica | Títulos `text-[32px] font-medium tracking-tight`; eyebrow = label uppercase 11px `font-medium` letter-spacing 0.06em | Pouca variação de tamanho, muito peso |
+| Macros | Barras finas (h-1) pretas sobre rule-2 | Sem cores — comparação visual sem ruído cromático |
+| Disclaimer | Linha de texto com border-top, prefixo "Aviso." em medium | Mais discreto que banner, ainda visível |
+| Layout máx | `max-w-4xl` (em vez de `max-w-5xl`) | Linhas de texto mais legíveis; densidade controlada |
