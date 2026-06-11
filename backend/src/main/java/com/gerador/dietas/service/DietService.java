@@ -5,6 +5,7 @@ import com.gerador.dietas.domain.DietPlan;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.domain.ProfileSnapshot;
 import com.gerador.dietas.domain.User;
+import com.gerador.dietas.exception.DietGenerationLimitException;
 import com.gerador.dietas.exception.DietPlanNotFoundException;
 import com.gerador.dietas.exception.ProfileIncompleteException;
 import com.gerador.dietas.llm.DietGenerator;
@@ -18,6 +19,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +29,10 @@ public class DietService {
 
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
     };
+
+    // Cada geração custa quota/dinheiro na LLM; limite simples por usuário
+    // contando planos das últimas 24h (Bucket4j seria overkill neste estágio).
+    static final int DAILY_GENERATION_LIMIT = 5;
 
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
@@ -58,6 +65,14 @@ public class DietService {
         Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new ProfileIncompleteException(
                         "Complete seu perfil em PUT /api/profile antes de gerar uma dieta."));
+
+        long generatedLast24h = dietPlanRepository.countByUserIdAndCreatedAtAfter(
+                userId, Instant.now().minus(Duration.ofHours(24)));
+        if (generatedLast24h >= DAILY_GENERATION_LIMIT) {
+            throw new DietGenerationLimitException(
+                    "Limite de " + DAILY_GENERATION_LIMIT + " gerações por dia atingido. "
+                            + "Tente novamente em algumas horas.");
+        }
 
         MetabolismResult metabolism = metabolismService.calculate(profile);
 

@@ -37,6 +37,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
+    @ExceptionHandler(DietGenerationLimitException.class)
+    public ResponseEntity<ApiError> handleDietGenerationLimit(DietGenerationLimitException ex) {
+        return build(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", ex.getMessage());
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex) {
         String message = "Corpo da requisição inválido";
