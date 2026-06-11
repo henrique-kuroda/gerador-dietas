@@ -61,7 +61,7 @@ public class GeminiLlmService implements LlmService {
 
     private String callGemini(String prompt) {
         URI uri = URI.create(
-                props.baseUrl() + "/v1beta/models/" + props.model() + ":generateContent?key=" + props.apiKey());
+                props.baseUrl() + "/v1beta/models/" + props.model() + ":generateContent");
 
         Map<String, Object> body = Map.of(
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
@@ -74,6 +74,7 @@ public class GeminiLlmService implements LlmService {
         try {
             GeminiResponse response = restClient.post()
                     .uri(uri)
+                    .header("x-goog-api-key", props.apiKey())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
