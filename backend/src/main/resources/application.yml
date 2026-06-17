@@ -27,6 +27,12 @@ security:
     secret: ${JWT_SECRET:changeme-this-is-a-very-long-secret-key-for-jwt-signing-min-256-bits}
     expiration-ms: ${JWT_EXPIRATION_MS:3600000}
 
+app:
+  cors:
+    # Origens liberadas para o front. Em produção defina ALLOWED_ORIGINS
+    # (lista separada por vírgula) com o domínio real.
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174}
+
 llm:
   gemini:
     api-key: ${GEMINI_API_KEY:}
