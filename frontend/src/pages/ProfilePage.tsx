@@ -8,7 +8,7 @@ import { getProfile, saveProfile } from "../services/profile";
 import { extractApiErrorMessage } from "../services/api";
 import { FieldShell, SelectField, TextField } from "../components/FormField";
 import type { ProfileRequest } from "../types";
-import { GOAL_LABELS } from "../types/labels";
+import { BUDGET_LABELS, GOAL_LABELS, REGION_LABELS } from "../types/labels";
 
 const schema = z.object({
   weightKg: z.coerce.number().positive("deve ser maior que zero").max(500),
@@ -38,6 +38,20 @@ const schema = z.object({
   bodyFatPercent: z
     .union([z.coerce.number().min(0).max(99.9), z.literal("")])
     .optional(),
+  favoriteFoods: z.string().max(1000).optional(),
+  dislikedFoods: z.string().max(1000).optional(),
+  budget: z
+    .enum(["ECONOMICAL", "MODERATE", "UNRESTRICTED"])
+    .or(z.literal(""))
+    .optional(),
+  region: z
+    .enum(["NORTE", "NORDESTE", "CENTRO_OESTE", "SUDESTE", "SUL"])
+    .or(z.literal(""))
+    .optional(),
+  maxPrepMinutes: z
+    .union([z.coerce.number().int().min(1).max(480), z.literal("")])
+    .optional(),
+  eatsOutAtLunch: z.enum(["", "true", "false"]).optional(),
 });
 
 type FormValues = z.input<typeof schema>;
@@ -81,6 +95,12 @@ export function ProfilePage() {
       activityLevel: "MODERATE",
       goal: "MAINTAIN",
       mealsPerDay: 4,
+      favoriteFoods: "",
+      dislikedFoods: "",
+      budget: "",
+      region: "",
+      maxPrepMinutes: "",
+      eatsOutAtLunch: "",
     },
   });
 
@@ -96,6 +116,17 @@ export function ProfilePage() {
         dietaryRestrictions: profileQuery.data.dietaryRestrictions ?? "",
         mealsPerDay: profileQuery.data.mealsPerDay,
         bodyFatPercent: profileQuery.data.bodyFatPercent ?? "",
+        favoriteFoods: profileQuery.data.favoriteFoods ?? "",
+        dislikedFoods: profileQuery.data.dislikedFoods ?? "",
+        budget: profileQuery.data.budget ?? "",
+        region: profileQuery.data.region ?? "",
+        maxPrepMinutes: profileQuery.data.maxPrepMinutes ?? "",
+        eatsOutAtLunch:
+          profileQuery.data.eatsOutAtLunch == null
+            ? ""
+            : profileQuery.data.eatsOutAtLunch
+              ? "true"
+              : "false",
       });
     }
   }, [profileQuery.data, reset]);
@@ -115,6 +146,20 @@ export function ProfilePage() {
           values.bodyFatPercent === "" || values.bodyFatPercent == null
             ? null
             : Number(values.bodyFatPercent),
+        favoriteFoods: values.favoriteFoods?.trim() || null,
+        dislikedFoods: values.dislikedFoods?.trim() || null,
+        budget: values.budget ? values.budget : null,
+        region: values.region ? values.region : null,
+        maxPrepMinutes:
+          values.maxPrepMinutes === "" || values.maxPrepMinutes == null
+            ? null
+            : Number(values.maxPrepMinutes),
+        eatsOutAtLunch:
+          values.eatsOutAtLunch === "true"
+            ? true
+            : values.eatsOutAtLunch === "false"
+              ? false
+              : null,
       };
       return saveProfile(payload);
     },
@@ -259,6 +304,87 @@ export function ProfilePage() {
               )}
             </FieldShell>
           </Grid>
+        </Section>
+
+        <Section
+          title="Preferências"
+          description="Opcionais — quanto mais você preencher, mais o cardápio fica com a sua cara."
+        >
+          <div className="space-y-4">
+            <Grid cols={2}>
+              <FieldShell label="Gosto muito de">
+                <textarea
+                  rows={3}
+                  placeholder="ex.: ovos, frango, banana, aveia"
+                  className="field"
+                  {...register("favoriteFoods")}
+                />
+                {errors.favoriteFoods?.message && (
+                  <p className="mt-1.5 text-xs text-[var(--color-ink)]">
+                    {errors.favoriteFoods.message}
+                  </p>
+                )}
+              </FieldShell>
+              <FieldShell label="Não gosto / não como">
+                <textarea
+                  rows={3}
+                  placeholder="ex.: jiló, fígado, peixe"
+                  className="field"
+                  {...register("dislikedFoods")}
+                />
+                {errors.dislikedFoods?.message && (
+                  <p className="mt-1.5 text-xs text-[var(--color-ink)]">
+                    {errors.dislikedFoods.message}
+                  </p>
+                )}
+              </FieldShell>
+            </Grid>
+            <Grid cols={2}>
+              <SelectField
+                label="Orçamento"
+                error={errors.budget?.message}
+                {...register("budget")}
+              >
+                <option value="">Sem preferência</option>
+                {Object.entries(BUDGET_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </SelectField>
+              <SelectField
+                label="Região do Brasil"
+                error={errors.region?.message}
+                {...register("region")}
+              >
+                <option value="">Sem preferência</option>
+                {Object.entries(REGION_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </SelectField>
+              <TextField
+                label="Tempo máx. de preparo (min)"
+                type="number"
+                min={1}
+                max={480}
+                placeholder="opcional"
+                hint="Receitas serão mais simples se o tempo for curto."
+                error={errors.maxPrepMinutes?.message as string | undefined}
+                {...register("maxPrepMinutes")}
+              />
+              <SelectField
+                label="Almoço"
+                error={errors.eatsOutAtLunch?.message}
+                {...register("eatsOutAtLunch")}
+              >
+                <option value="">Sem informar</option>
+                <option value="false">Em casa</option>
+                <option value="true">Fora (sugerir marmita/restaurante)</option>
+              </SelectField>
+            </Grid>
+          </div>
         </Section>
 
         <div className="flex items-center justify-between gap-4 pt-2">

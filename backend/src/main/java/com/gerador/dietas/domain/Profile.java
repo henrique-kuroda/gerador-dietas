@@ -56,6 +56,26 @@ public class Profile {
     @Column(name = "body_fat_percent")
     private Double bodyFatPercent;
 
+    @Column(name = "favorite_foods", length = 1000)
+    private String favoriteFoods;
+
+    @Column(name = "disliked_foods", length = 1000)
+    private String dislikedFoods;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "budget", length = 20)
+    private Budget budget;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "region", length = 20)
+    private BrazilRegion region;
+
+    @Column(name = "max_prep_minutes")
+    private Integer maxPrepMinutes;
+
+    @Column(name = "eats_out_at_lunch")
+    private Boolean eatsOutAtLunch;
+
     public Profile() {
     }
 
@@ -145,6 +165,54 @@ public class Profile {
 
     public void setBodyFatPercent(Double bodyFatPercent) {
         this.bodyFatPercent = bodyFatPercent;
+    }
+
+    public String getFavoriteFoods() {
+        return favoriteFoods;
+    }
+
+    public void setFavoriteFoods(String favoriteFoods) {
+        this.favoriteFoods = favoriteFoods;
+    }
+
+    public String getDislikedFoods() {
+        return dislikedFoods;
+    }
+
+    public void setDislikedFoods(String dislikedFoods) {
+        this.dislikedFoods = dislikedFoods;
+    }
+
+    public Budget getBudget() {
+        return budget;
+    }
+
+    public void setBudget(Budget budget) {
+        this.budget = budget;
+    }
+
+    public BrazilRegion getRegion() {
+        return region;
+    }
+
+    public void setRegion(BrazilRegion region) {
+        this.region = region;
+    }
+
+    public Integer getMaxPrepMinutes() {
+        return maxPrepMinutes;
+    }
+
+    public void setMaxPrepMinutes(Integer maxPrepMinutes) {
+        this.maxPrepMinutes = maxPrepMinutes;
+    }
+
+    public Boolean getEatsOutAtLunch() {
+        return eatsOutAtLunch;
+    }
+
+    public void setEatsOutAtLunch(Boolean eatsOutAtLunch) {
+        this.eatsOutAtLunch = eatsOutAtLunch;
     }
 
     @Override

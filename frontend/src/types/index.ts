@@ -16,6 +16,15 @@ export type Goal =
 
 export type Formula = "HARRIS_BENEDICT" | "MIFFLIN_ST_JEOR" | "KATCH_MCARDLE";
 
+export type Budget = "ECONOMICAL" | "MODERATE" | "UNRESTRICTED";
+
+export type BrazilRegion =
+  | "NORTE"
+  | "NORDESTE"
+  | "CENTRO_OESTE"
+  | "SUDESTE"
+  | "SUL";
+
 export interface RegisterRequest {
   name: string;
   email: string;
@@ -48,6 +57,12 @@ export interface ProfileRequest {
   dietaryRestrictions?: string | null;
   mealsPerDay: number;
   bodyFatPercent?: number | null;
+  favoriteFoods?: string | null;
+  dislikedFoods?: string | null;
+  budget?: Budget | null;
+  region?: BrazilRegion | null;
+  maxPrepMinutes?: number | null;
+  eatsOutAtLunch?: boolean | null;
 }
 
 export type ProfileResponse = ProfileRequest;
@@ -87,6 +102,25 @@ export interface DietPlanResponse {
   createdAt: string;
   /** Perfil no momento da geração; null em planos antigos. */
   profileSnapshot: ProfileResponse | null;
+}
+
+/** Resumo devolvido pela listagem do histórico (sem o cardápio completo). */
+export interface DietPlanSummary {
+  id: number;
+  createdAt: string;
+  targetCalories: number;
+  summary: string | null;
+  totalCalories: number | null;
+  mealsCount: number;
+}
+
+/** Envelope de paginação do Spring Data. */
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 export interface ApiError {

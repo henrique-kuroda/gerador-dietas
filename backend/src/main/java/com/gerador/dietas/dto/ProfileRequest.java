@@ -1,6 +1,8 @@
 package com.gerador.dietas.dto;
 
 import com.gerador.dietas.domain.ActivityLevel;
+import com.gerador.dietas.domain.BrazilRegion;
+import com.gerador.dietas.domain.Budget;
 import com.gerador.dietas.domain.Goal;
 import com.gerador.dietas.domain.Sex;
 import jakarta.validation.constraints.DecimalMax;
@@ -46,6 +48,22 @@ public record ProfileRequest(
 
         @DecimalMin(value = "0.0", message = "deve ser maior ou igual a zero")
         @DecimalMax(value = "100.0", inclusive = false, message = "deve ser menor que 100")
-        Double bodyFatPercent
+        Double bodyFatPercent,
+
+        @Size(max = 1000, message = "deve ter no máximo 1000 caracteres")
+        String favoriteFoods,
+
+        @Size(max = 1000, message = "deve ter no máximo 1000 caracteres")
+        String dislikedFoods,
+
+        Budget budget,
+
+        BrazilRegion region,
+
+        @Min(value = 1, message = "deve ser pelo menos 1 minuto")
+        @Max(value = 480, message = "deve ser no máximo 480 minutos")
+        Integer maxPrepMinutes,
+
+        Boolean eatsOutAtLunch
 ) {
 }

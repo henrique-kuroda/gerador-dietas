@@ -48,6 +48,12 @@ public class ProfileService {
         profile.setDietaryRestrictions(blankToNull(request.dietaryRestrictions()));
         profile.setMealsPerDay(request.mealsPerDay());
         profile.setBodyFatPercent(request.bodyFatPercent());
+        profile.setFavoriteFoods(blankToNull(request.favoriteFoods()));
+        profile.setDislikedFoods(blankToNull(request.dislikedFoods()));
+        profile.setBudget(request.budget());
+        profile.setRegion(request.region());
+        profile.setMaxPrepMinutes(request.maxPrepMinutes());
+        profile.setEatsOutAtLunch(request.eatsOutAtLunch());
 
         return profileRepository.save(profile);
     }

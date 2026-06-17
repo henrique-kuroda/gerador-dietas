@@ -1,6 +1,8 @@
 package com.gerador.dietas.dto;
 
 import com.gerador.dietas.domain.ActivityLevel;
+import com.gerador.dietas.domain.BrazilRegion;
+import com.gerador.dietas.domain.Budget;
 import com.gerador.dietas.domain.Goal;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.domain.Sex;
@@ -14,7 +16,13 @@ public record ProfileResponse(
         Goal goal,
         String dietaryRestrictions,
         Integer mealsPerDay,
-        Double bodyFatPercent
+        Double bodyFatPercent,
+        String favoriteFoods,
+        String dislikedFoods,
+        Budget budget,
+        BrazilRegion region,
+        Integer maxPrepMinutes,
+        Boolean eatsOutAtLunch
 ) {
     public static ProfileResponse from(Profile profile) {
         return new ProfileResponse(
@@ -26,7 +34,13 @@ public record ProfileResponse(
                 profile.getGoal(),
                 profile.getDietaryRestrictions(),
                 profile.getMealsPerDay(),
-                profile.getBodyFatPercent()
+                profile.getBodyFatPercent(),
+                profile.getFavoriteFoods(),
+                profile.getDislikedFoods(),
+                profile.getBudget(),
+                profile.getRegion(),
+                profile.getMaxPrepMinutes(),
+                profile.getEatsOutAtLunch()
         );
     }
 }

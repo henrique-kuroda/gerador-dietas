@@ -2,6 +2,8 @@ package com.gerador.dietas.llm;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gerador.dietas.domain.BrazilRegion;
+import com.gerador.dietas.domain.Budget;
 import com.gerador.dietas.domain.Goal;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.llm.LlmException.Kind;
@@ -123,10 +125,61 @@ public class DietGenerator {
                 .replace("{goal}", profile.getGoal().name())
                 .replace("{dietaryRestrictions}", (restrictions == null || restrictions.isBlank()) ? "nenhuma" : restrictions)
                 .replace("{mealsPerDay}", String.valueOf(profile.getMealsPerDay()))
+                .replace("{favoriteFoods}", textOr(profile.getFavoriteFoods(), "nenhum informado"))
+                .replace("{dislikedFoods}", textOr(profile.getDislikedFoods(), "nenhum informado"))
+                .replace("{budget}", describeBudget(profile.getBudget()))
+                .replace("{region}", describeRegion(profile.getRegion()))
+                .replace("{routine}", describeRoutine(profile.getMaxPrepMinutes(), profile.getEatsOutAtLunch()))
                 .replace("{targetCalories}", String.valueOf(target))
                 .replace("{targetCaloriesMin}", String.valueOf(min))
                 .replace("{targetCaloriesMax}", String.valueOf(max))
                 .replace("{macroGuidelines}", macroGuidelinesFor(profile));
+    }
+
+    private static String textOr(String value, String fallback) {
+        return (value == null || value.isBlank()) ? fallback : value.trim();
+    }
+
+    static String describeBudget(Budget budget) {
+        if (budget == null) {
+            return "sem preferência informada";
+        }
+        return switch (budget) {
+            case ECONOMICAL -> "econômico — priorize alimentos baratos e de alto custo-benefício "
+                    + "(ovo, frango, sardinha, leguminosas, ovos, vegetais e frutas da estação); "
+                    + "evite cortes nobres, castanhas caras e itens importados";
+            case MODERATE -> "moderado — equilíbrio entre custo e variedade, sem exageros";
+            case UNRESTRICTED -> "livre — sem restrição de custo; pode incluir itens premium quando "
+                    + "fizer sentido nutricional";
+        };
+    }
+
+    static String describeRegion(BrazilRegion region) {
+        if (region == null) {
+            return "não informada — use alimentos comuns no Brasil em geral";
+        }
+        return switch (region) {
+            case NORTE -> "Norte (ex.: tucupi, açaí, peixes de água doce, mandioca, frutas amazônicas)";
+            case NORDESTE -> "Nordeste (ex.: cuscuz de milho, tapioca, macaxeira, feijão-verde, peixes, frutas tropicais)";
+            case CENTRO_OESTE -> "Centro-Oeste (ex.: pequi, mandioca, peixes de rio, carnes, arroz)";
+            case SUDESTE -> "Sudeste (ex.: arroz e feijão, pão de queijo, carnes, hortaliças, frutas comuns)";
+            case SUL -> "Sul (ex.: churrasco, polenta, pratos com trigo, carnes, derivados de leite)";
+        };
+    }
+
+    static String describeRoutine(Integer maxPrepMinutes, Boolean eatsOutAtLunch) {
+        List<String> parts = new java.util.ArrayList<>();
+        if (maxPrepMinutes != null) {
+            parts.add("tempo máximo de preparo por refeição de cerca de " + maxPrepMinutes
+                    + " min — priorize receitas simples e rápidas");
+        }
+        if (Boolean.TRUE.equals(eatsOutAtLunch)) {
+            parts.add("almoça fora de casa — no almoço, sugira opções práticas, portáteis (marmita) "
+                    + "ou facilmente encontráveis em restaurantes");
+        } else if (Boolean.FALSE.equals(eatsOutAtLunch)) {
+            parts.add("faz as refeições em casa");
+        }
+        return parts.isEmpty() ? "sem informações de rotina" : String.join("; ", parts);
     }
 
     /**

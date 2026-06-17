@@ -12,6 +12,13 @@ DADOS DO USUÁRIO
 - Restrições alimentares: {dietaryRestrictions}
 - Refeições por dia: {mealsPerDay}
 
+PREFERÊNCIAS E CONTEXTO (use para personalizar — é o que faz o plano parecer "feito para o usuário")
+- Alimentos que o usuário gosta (faça-os aparecer com frequência quando couber): {favoriteFoods}
+- Alimentos que o usuário NÃO gosta / não come (evite completamente — isto é preferência, não alergia): {dislikedFoods}
+- Orçamento: {budget}
+- Culinária regional: {region}
+- Rotina e preparo: {routine}
+
 METAS CALCULADAS (use exatamente estes valores, NÃO recalcule)
 - Calorias-alvo diárias: {targetCalories} kcal
 - Tolerância: o total do dia deve cair entre {targetCaloriesMin} e {targetCaloriesMax} kcal (±5%).
@@ -34,10 +41,14 @@ VARIEDADE E QUALIDADE
 - Porções devem ser concretas e mensuráveis (ex.: "100 g", "1 xícara",
   "2 fatias", "1 colher de sopa"). Evite "à vontade" e "quanto baste".
 
-RESTRIÇÕES
+RESTRIÇÕES E PREFERÊNCIAS
 - Respeite estritamente as restrições alimentares informadas.
 - Em caso de restrição (ex.: sem lactose, vegetariano, alergia), proponha
   substitutos viáveis e equivalentes nutricionalmente.
+- NÃO inclua nenhum alimento da lista de "não gosta / não come", nem como
+  ingrediente secundário.
+- Ao escolher entre opções equivalentes, prefira os alimentos que o usuário
+  gosta e respeite o orçamento e a culinária regional informados.
 
 RESUMO
 - O campo "summary" deve ter no máximo 240 caracteres, em português,
@@ -60,6 +71,7 @@ e macros (sem casas decimais, sem strings com unidades).
         { "food": "string", "portion": "string", "calories": número inteiro }
       ]
     }
+
   ],
   "macros": { "proteinG": número inteiro, "carbsG": número inteiro, "fatG": número inteiro }
 }
