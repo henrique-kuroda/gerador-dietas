@@ -73,7 +73,7 @@ export function HistoryPage() {
                     </h2>
                   </div>
                   <p className="mt-0.5 text-[13px] text-[var(--color-ink-3)] line-clamp-1">
-                    {plan.content.summary}
+                    {plan.summary}
                   </p>
                 </div>
 
@@ -81,7 +81,7 @@ export function HistoryPage() {
                   <span className="text-[var(--color-ink)] text-[14px]">
                     {plan.targetCalories} kcal
                   </span>
-                  <span>{plan.content.meals.length} refeições</span>
+                  <span>{plan.mealsCount} refeições</span>
                 </div>
 
                 <div className="text-right text-[12px] text-[var(--color-ink-3)] tabular">

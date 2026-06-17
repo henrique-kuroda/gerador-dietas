@@ -16,12 +16,13 @@ import com.gerador.dietas.repository.DietPlanRepository;
 import com.gerador.dietas.repository.ProfileRepository;
 import com.gerador.dietas.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -93,8 +94,8 @@ public class DietService {
     }
 
     @Transactional(readOnly = true)
-    public List<DietPlan> listForUser(Long userId) {
-        return dietPlanRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    public Page<DietPlan> listForUser(Long userId, Pageable pageable) {
+        return dietPlanRepository.findByUserId(userId, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -102,6 +103,14 @@ public class DietService {
         return dietPlanRepository.findByIdAndUserId(dietPlanId, userId)
                 .orElseThrow(() -> new DietPlanNotFoundException(
                         "Dieta " + dietPlanId + " não encontrada."));
+    }
+
+    @Transactional
+    public void delete(Long userId, Long dietPlanId) {
+        DietPlan plan = dietPlanRepository.findByIdAndUserId(dietPlanId, userId)
+                .orElseThrow(() -> new DietPlanNotFoundException(
+                        "Dieta " + dietPlanId + " não encontrada."));
+        dietPlanRepository.delete(plan);
     }
 
     @Transactional(readOnly = true)

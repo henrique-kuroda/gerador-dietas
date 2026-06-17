@@ -142,11 +142,11 @@ export function DashboardPage() {
                 Cardápio #{lastDiet.id}
               </h3>
               <span className="text-[13px] tabular text-[var(--color-ink-3)]">
-                {lastDiet.targetCalories} kcal · {lastDiet.content.meals.length} refeições
+                {lastDiet.targetCalories} kcal · {lastDiet.mealsCount} refeições
               </span>
             </div>
             <p className="mt-1 text-[13px] text-[var(--color-ink-3)] line-clamp-2">
-              {lastDiet.content.summary}
+              {lastDiet.summary}
             </p>
           </Link>
         </section>

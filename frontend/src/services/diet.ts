@@ -1,14 +1,20 @@
 import { api } from "./api";
-import type { DietPlanResponse } from "../types";
+import type { DietPlanResponse, DietPlanSummary, Page } from "../types";
 
 export async function generateDiet(): Promise<DietPlanResponse> {
   const { data } = await api.post<DietPlanResponse>("/api/diet/generate");
   return data;
 }
 
-export async function listDiets(): Promise<DietPlanResponse[]> {
-  const { data } = await api.get<DietPlanResponse[]>("/api/diet");
-  return data;
+export async function listDiets(): Promise<DietPlanSummary[]> {
+  const { data } = await api.get<Page<DietPlanSummary>>("/api/diet", {
+    params: { size: 50, sort: "createdAt,desc" },
+  });
+  return data.content;
+}
+
+export async function deleteDiet(id: number): Promise<void> {
+  await api.delete(`/api/diet/${id}`);
 }
 
 export async function getDiet(id: number): Promise<DietPlanResponse> {

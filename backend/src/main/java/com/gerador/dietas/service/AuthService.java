@@ -53,6 +53,16 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalStateException("Usuário do token não existe mais"));
     }
 
+    @Transactional
+    public void deleteAccount(Long userId) {
+        // O cascade (JPA orphanRemoval + ON DELETE CASCADE no banco) remove
+        // perfil e planos junto. Carregamos a entidade para disparar o cascade
+        // do JPA em vez de um delete direto por id.
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("Usuário do token não existe mais"));
+        userRepository.delete(user);
+    }
+
     public AuthResponse login(LoginRequest request) {
         String email = request.email().trim().toLowerCase();
         Authentication auth = authenticationManager.authenticate(
