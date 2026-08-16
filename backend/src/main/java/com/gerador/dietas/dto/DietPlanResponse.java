@@ -20,6 +20,8 @@ public record DietPlanResponse(
         Instant createdAt,
         Instant adjustedAt,
         Integer adjustmentCount,
+        Integer adjustmentsRemaining,
+        Integer maxAdjustments,
         ProfileSnapshotResponse profileSnapshot
 ) {
     public static DietPlanResponse from(DietPlan plan) {
@@ -33,6 +35,8 @@ public record DietPlanResponse(
                 plan.getCreatedAt(),
                 plan.getAdjustedAt(),
                 plan.getAdjustmentCount(),
+                plan.getAdjustmentsRemaining(),
+                DietPlan.MAX_ADJUSTMENTS,
                 ProfileSnapshotResponse.from(plan.getProfileSnapshot())
         );
     }

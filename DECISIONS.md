@@ -199,4 +199,5 @@ login.
 | Throttle no auth | Filtro em memória por IP: 10 **falhas** de login/15min e 5 cadastros/hora | Instância única; Redis/Bucket4j seguem overkill. Só falha conta no login — quem acerta a senha nunca é barrado |
 | Identificação do cliente | `request.getRemoteAddr()`, sem ler `X-Forwarded-For` | Confiar no header sem proxy confiável na frente torna o limite trivial de burlar; atrás de proxy, usar `server.forward-headers-strategy` |
 | Testes de integração | Testcontainers + PostgreSQL real, `LlmService` mockado, container único por JVM | JSONB, Flyway e as constraints não existem em H2; nenhum teste pode gastar quota do Gemini |
+| Teto de ajustes por plano | Constante `DietPlan.MAX_ADJUSTMENTS` no domínio, exposta em `DietPlanResponse` (`maxAdjustments`, `adjustmentsRemaining`) | É regra do plano, não do serviço; o front exibia um `10` hard-coded que divergiria em silêncio na primeira mudança |
 | `api.version=1.44` no surefire | Fixado em `pom.xml` | O docker-java negocia uma API antiga por padrão e o Docker Engine 29+ responde 400, fazendo o Testcontainers "não achar o Docker" |

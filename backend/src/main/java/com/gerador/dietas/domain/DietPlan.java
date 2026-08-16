@@ -24,6 +24,13 @@ import java.util.Objects;
 @Table(name = "diet_plans")
 public class DietPlan {
 
+    /**
+     * Teto de ajustes conversacionais por plano. Vive aqui (e não no serviço) porque
+     * é regra do próprio plano e o front precisa do valor para montar o contador —
+     * duplicar a constante no cliente deixaria os dois lados divergirem em silêncio.
+     */
+    public static final int MAX_ADJUSTMENTS = 10;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -178,6 +185,15 @@ public class DietPlan {
 
     public String getLastAdjustment() {
         return lastAdjustment;
+    }
+
+    /** Quantos ajustes ainda cabem neste plano. */
+    public int getAdjustmentsRemaining() {
+        return Math.max(0, MAX_ADJUSTMENTS - adjustmentCount);
+    }
+
+    public boolean hasAdjustmentsLeft() {
+        return adjustmentCount < MAX_ADJUSTMENTS;
     }
 
     /** Registra um ajuste aplicado (chamado após a LLM revisar o plano). */

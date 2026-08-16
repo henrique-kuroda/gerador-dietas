@@ -104,6 +104,9 @@ export interface DietPlanResponse {
   adjustedAt: string | null;
   /** Quantos ajustes já foram aplicados a este plano. */
   adjustmentCount: number;
+  /** Quantos ajustes ainda cabem; o back-end é a fonte da verdade do teto. */
+  adjustmentsRemaining: number;
+  maxAdjustments: number;
   /** Perfil no momento da geração; null em planos antigos. */
   profileSnapshot: ProfileResponse | null;
 }

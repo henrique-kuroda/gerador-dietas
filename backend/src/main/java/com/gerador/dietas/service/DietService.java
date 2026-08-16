@@ -31,10 +31,6 @@ public class DietService {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
     };
 
-    // Teto por plano: além da cota diária (LlmQuotaService), impede que um único
-    // plano vire um chat infinito com a LLM.
-    static final int MAX_ADJUSTMENTS_PER_PLAN = 10;
-
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
     private final DietPlanRepository dietPlanRepository;
@@ -108,9 +104,11 @@ public class DietService {
                 .orElseThrow(() -> new DietPlanNotFoundException(
                         "Dieta " + dietPlanId + " não encontrada."));
 
-        if (plan.getAdjustmentCount() >= MAX_ADJUSTMENTS_PER_PLAN) {
+        // Além da cota diária, o teto por plano impede que um único plano vire um
+        // chat infinito com a LLM.
+        if (!plan.hasAdjustmentsLeft()) {
             throw new DietGenerationLimitException(
-                    "Limite de " + MAX_ADJUSTMENTS_PER_PLAN + " ajustes para este plano atingido.");
+                    "Limite de " + DietPlan.MAX_ADJUSTMENTS + " ajustes para este plano atingido.");
         }
 
         llmQuotaService.reserve(userId, LlmCallKind.ADJUST);

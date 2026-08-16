@@ -6,8 +6,6 @@ import { DietPlanView } from "../components/DietPlanView";
 import { Disclaimer } from "../components/Disclaimer";
 import { extractApiErrorMessage, hasApiStatus } from "../services/api";
 
-const ADJUST_LIMIT = 10;
-
 export function DietDetailPage() {
   const { id } = useParams();
   const numericId = id ? Number(id) : NaN;
@@ -49,7 +47,8 @@ export function DietDetailPage() {
 
   const plan = query.data;
   const adjustmentCount = plan?.adjustmentCount ?? 0;
-  const limitReached = adjustmentCount >= ADJUST_LIMIT;
+  const maxAdjustments = plan?.maxAdjustments ?? 0;
+  const limitReached = plan?.adjustmentsRemaining === 0;
 
   function prefillSwap(mealName: string, food: string) {
     setAdjusted(false);
@@ -110,7 +109,7 @@ export function DietDetailPage() {
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="label">Ajustar plano</h2>
             <span className="text-[12px] tabular text-[var(--color-ink-3)]">
-              {adjustmentCount}/{ADJUST_LIMIT} ajustes
+              {adjustmentCount}/{maxAdjustments} ajustes
             </span>
           </div>
           <p className="text-[13px] text-[var(--color-ink-3)]">
