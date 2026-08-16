@@ -181,3 +181,22 @@ Ver `AJUSTE-DE-PLANO-E-GUARDRAILS.md` para o passo a passo completo.
 | `systemInstruction` | Overload `LlmService.generateJson(system, prompt, schema)`; Gemini envia `systemInstruction`, demais provedores ignoram | Regra de escopo num canal separado dos dados do usuário, sem quebrar a abstração |
 | Higiene de entrada | `DietGenerator.sanitizeForPrompt` em todo campo livre (geração e ajuste) | Neutraliza cercas ``` ``` ``` e delimitadores `---` forjados; limita tamanho |
 | Cobertura de testes | Unit no `DietGenerator` (ajuste feliz/retry/falha + guardrails/sanitização) | Casos de serviço/controller (429, 404, ponta-a-ponta) ficam para a suíte de integração (Testcontainers, item 5 do plano) |
+
+## Cota de LLM, throttle no auth e optimistic locking
+
+Três buracos que apareceram depois do ajuste conversacional: o ajuste furava o teto
+de custo, dois ajustes simultâneos se sobrescreviam e nada segurava força bruta no
+login.
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Base da cota | Tabela `llm_usage (user_id, kind, created_at)` (migration V6) em vez de contar `diet_plans` | Ajuste é chamada paga e não cria plano; contar planos deixava o ajuste fora da cota |
+| Limites | 15 chamadas/24h no total + sub-teto de 5 gerações/24h (`LlmQuotaService`) | Preserva o limite de gerações que já existia e fecha o total; teto por plano (10) continua como trava de sanidade |
+| Momento do registro | Reserva **antes** de chamar a LLM, sem estorno | Tentativa que falha já consumiu quota do provedor; erro de configuração nossa estoura antes de reservar |
+| Backfill | V6 insere um `GENERATE` para cada plano existente | Quem gerou nas últimas 24h antes da migration não ganha cota extra |
+| Concorrência no plano | `@Version` em `DietPlan` (migration V7) → `OptimisticLockingFailureException` → HTTP 409 | O ajuste grava fora de transação; sem versão, um dos ajustes sumia e o `adjustment_count` mentia |
+| Front no 409 | `invalidateQueries` da dieta ao receber 409 | A tela estava velha por definição; recarregar é o único desfecho útil |
+| Throttle no auth | Filtro em memória por IP: 10 **falhas** de login/15min e 5 cadastros/hora | Instância única; Redis/Bucket4j seguem overkill. Só falha conta no login — quem acerta a senha nunca é barrado |
+| Identificação do cliente | `request.getRemoteAddr()`, sem ler `X-Forwarded-For` | Confiar no header sem proxy confiável na frente torna o limite trivial de burlar; atrás de proxy, usar `server.forward-headers-strategy` |
+| Testes de integração | Testcontainers + PostgreSQL real, `LlmService` mockado, container único por JVM | JSONB, Flyway e as constraints não existem em H2; nenhum teste pode gastar quota do Gemini |
+| `api.version=1.44` no surefire | Fixado em `pom.xml` | O docker-java negocia uma API antiga por padrão e o Docker Engine 29+ responde 400, fazendo o Testcontainers "não achar o Docker" |
