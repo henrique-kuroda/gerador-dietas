@@ -1,5 +1,6 @@
 package com.gerador.dietas.config;
 
+import com.gerador.dietas.security.AuthRateLimitFilter;
 import com.gerador.dietas.security.JwtAuthenticationFilter;
 import com.gerador.dietas.security.JwtProperties;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,7 +46,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
-                                                   JwtAuthenticationFilter jwtFilter) throws Exception {
+                                                   JwtAuthenticationFilter jwtFilter,
+                                                   AuthRateLimitFilter authRateLimitFilter) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -59,6 +61,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 
