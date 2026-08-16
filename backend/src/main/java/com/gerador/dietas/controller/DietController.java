@@ -1,11 +1,13 @@
 package com.gerador.dietas.controller;
 
 import com.gerador.dietas.domain.DietPlan;
+import com.gerador.dietas.dto.DietAdjustRequest;
 import com.gerador.dietas.dto.DietPlanResponse;
 import com.gerador.dietas.dto.DietPlanSummaryResponse;
 import com.gerador.dietas.security.AppUserPrincipal;
 import com.gerador.dietas.service.DietService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,6 +57,15 @@ public class DietController {
     public DietPlanResponse get(@AuthenticationPrincipal AppUserPrincipal principal,
                                 @PathVariable Long id) {
         DietPlan plan = dietService.getOwned(principal.getId(), id);
+        return DietPlanResponse.from(plan);
+    }
+
+    @Operation(summary = "Ajusta um plano existente conforme um pedido em linguagem natural")
+    @PostMapping("/{id}/adjust")
+    public DietPlanResponse adjust(@AuthenticationPrincipal AppUserPrincipal principal,
+                                   @PathVariable Long id,
+                                   @Valid @RequestBody DietAdjustRequest request) {
+        DietPlan plan = dietService.adjust(principal.getId(), id, request.instruction());
         return DietPlanResponse.from(plan);
     }
 

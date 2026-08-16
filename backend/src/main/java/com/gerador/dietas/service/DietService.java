@@ -8,6 +8,7 @@ import com.gerador.dietas.domain.User;
 import com.gerador.dietas.exception.DietGenerationLimitException;
 import com.gerador.dietas.exception.DietPlanNotFoundException;
 import com.gerador.dietas.exception.ProfileIncompleteException;
+import com.gerador.dietas.llm.DietContent;
 import com.gerador.dietas.llm.DietGenerator;
 import com.gerador.dietas.llm.DietGeneratorResult;
 import com.gerador.dietas.metabolism.MetabolismResult;
@@ -34,6 +35,10 @@ public class DietService {
     // Cada geração custa quota/dinheiro na LLM; limite simples por usuário
     // contando planos das últimas 24h (Bucket4j seria overkill neste estágio).
     static final int DAILY_GENERATION_LIMIT = 5;
+
+    // Cada ajuste também é uma chamada paga à LLM; teto por plano barra abuso sem
+    // precisar de contagem por tempo.
+    static final int MAX_ADJUSTMENTS_PER_PLAN = 10;
 
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
@@ -103,6 +108,31 @@ public class DietService {
         return dietPlanRepository.findByIdAndUserId(dietPlanId, userId)
                 .orElseThrow(() -> new DietPlanNotFoundException(
                         "Dieta " + dietPlanId + " não encontrada."));
+    }
+
+    // Sem @Transactional de método: igual a generate(), a chamada à LLM fica fora de transação.
+    public DietPlan adjust(Long userId, Long dietPlanId, String instruction) {
+        DietPlan plan = dietPlanRepository.findByIdAndUserId(dietPlanId, userId)
+                .orElseThrow(() -> new DietPlanNotFoundException(
+                        "Dieta " + dietPlanId + " não encontrada."));
+
+        if (plan.getAdjustmentCount() >= MAX_ADJUSTMENTS_PER_PLAN) {
+            throw new DietGenerationLimitException(
+                    "Limite de " + MAX_ADJUSTMENTS_PER_PLAN + " ajustes para este plano atingido.");
+        }
+
+        // Preferências/restrições atuais do usuário (fallback: sem perfil → null tratado no prompt).
+        Profile profile = profileRepository.findByUserId(userId).orElse(null);
+        DietContent current = objectMapper.convertValue(plan.getContent(), DietContent.class);
+
+        // Fora de transação: pode demorar.
+        DietGeneratorResult adjusted = dietGenerator.adjust(
+                current, plan.getTargetCalories(), profile, instruction);
+
+        plan.setContent(objectMapper.convertValue(adjusted.content(), MAP_TYPE));
+        plan.setPromptUsed(adjusted.prompt());
+        plan.recordAdjustment(instruction);
+        return dietPlanRepository.save(plan);
     }
 
     @Transactional

@@ -5,6 +5,8 @@ carne, peixe, tubérculos, frutas e hortaliças da estação, leite e derivados,
 pães e cereais comuns no mercado nacional). Evite alimentos caros, exóticos
 ou de difícil acesso, salvo se a restrição alimentar exigir.
 
+{guardrails}
+
 DADOS DO USUÁRIO
 - Sexo: {sex} | Idade: {age} | Peso: {weightKg} kg | Altura: {heightCm} cm
 - Nível de atividade: {activityLevel}

@@ -18,6 +18,8 @@ public record DietPlanResponse(
         Formula formulaUsed,
         Map<String, Object> content,
         Instant createdAt,
+        Instant adjustedAt,
+        Integer adjustmentCount,
         ProfileSnapshotResponse profileSnapshot
 ) {
     public static DietPlanResponse from(DietPlan plan) {
@@ -29,6 +31,8 @@ public record DietPlanResponse(
                 plan.getFormulaUsed(),
                 plan.getContent(),
                 plan.getCreatedAt(),
+                plan.getAdjustedAt(),
+                plan.getAdjustmentCount(),
                 ProfileSnapshotResponse.from(plan.getProfileSnapshot())
         );
     }

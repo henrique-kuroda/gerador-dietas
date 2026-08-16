@@ -20,7 +20,13 @@ function formatDate(iso: string): string {
   }
 }
 
-export function DietPlanView({ plan }: { plan: DietPlanResponse }) {
+export function DietPlanView({
+  plan,
+  onSwap,
+}: {
+  plan: DietPlanResponse;
+  onSwap?: (mealName: string, food: string) => void;
+}) {
   const { content } = plan;
   const totalMacros =
     content.macros.proteinG + content.macros.carbsG + content.macros.fatG;
@@ -89,9 +95,20 @@ export function DietPlanView({ plan }: { plan: DietPlanResponse }) {
                         {item.portion}
                       </p>
                     </div>
-                    <span className="text-[13px] tabular text-[var(--color-ink-3)]">
-                      {item.calories} kcal
-                    </span>
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-[13px] tabular text-[var(--color-ink-3)]">
+                        {item.calories} kcal
+                      </span>
+                      {onSwap && (
+                        <button
+                          type="button"
+                          onClick={() => onSwap(meal.name, item.food)}
+                          className="text-[12px] text-[var(--color-ink-3)] underline-offset-2 hover:text-[var(--color-ink)] hover:underline"
+                        >
+                          trocar
+                        </button>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

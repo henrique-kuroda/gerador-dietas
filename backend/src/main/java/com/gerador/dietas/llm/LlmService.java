@@ -20,4 +20,13 @@ public interface LlmService {
     default String generateJson(String prompt, Map<String, Object> responseSchema) {
         return generateJson(prompt);
     }
+
+    /**
+     * Variante com instrução de sistema (canal separado dos dados do usuário, quando o
+     * provedor suporta) + schema de resposta. Provedores sem suporte ignoram a instrução
+     * de sistema e caem na variante por prompt.
+     */
+    default String generateJson(String systemInstruction, String prompt, Map<String, Object> responseSchema) {
+        return generateJson(prompt, responseSchema);
+    }
 }

@@ -57,6 +57,15 @@ public class DietPlan {
     @Embedded
     private ProfileSnapshot profileSnapshot;
 
+    @Column(name = "adjusted_at")
+    private Instant adjustedAt;
+
+    @Column(name = "adjustment_count", nullable = false)
+    private int adjustmentCount;
+
+    @Column(name = "last_adjustment", length = 500)
+    private String lastAdjustment;
+
     protected DietPlan() {
     }
 
@@ -145,6 +154,25 @@ public class DietPlan {
 
     public void setProfileSnapshot(ProfileSnapshot profileSnapshot) {
         this.profileSnapshot = profileSnapshot;
+    }
+
+    public Instant getAdjustedAt() {
+        return adjustedAt;
+    }
+
+    public int getAdjustmentCount() {
+        return adjustmentCount;
+    }
+
+    public String getLastAdjustment() {
+        return lastAdjustment;
+    }
+
+    /** Registra um ajuste aplicado (chamado após a LLM revisar o plano). */
+    public void recordAdjustment(String instruction) {
+        this.adjustedAt = Instant.now();
+        this.adjustmentCount += 1;
+        this.lastAdjustment = instruction;
     }
 
     @Override

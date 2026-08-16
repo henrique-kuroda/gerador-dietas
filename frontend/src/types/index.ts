@@ -100,8 +100,17 @@ export interface DietPlanResponse {
   formulaUsed: Formula;
   content: DietContent;
   createdAt: string;
+  /** Data do último ajuste conversacional; null se nunca ajustado. */
+  adjustedAt: string | null;
+  /** Quantos ajustes já foram aplicados a este plano. */
+  adjustmentCount: number;
   /** Perfil no momento da geração; null em planos antigos. */
   profileSnapshot: ProfileResponse | null;
+}
+
+/** Pedido de ajuste conversacional de um plano. */
+export interface DietAdjustRequest {
+  instruction: string;
 }
 
 /** Resumo devolvido pela listagem do histórico (sem o cardápio completo). */

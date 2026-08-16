@@ -22,6 +22,16 @@ export async function getDiet(id: number): Promise<DietPlanResponse> {
   return data;
 }
 
+export async function adjustDiet(
+  id: number,
+  instruction: string,
+): Promise<DietPlanResponse> {
+  const { data } = await api.post<DietPlanResponse>(`/api/diet/${id}/adjust`, {
+    instruction,
+  });
+  return data;
+}
+
 export async function downloadDietPdf(id: number): Promise<void> {
   const response = await api.get<Blob>(`/api/diet/${id}/pdf`, {
     responseType: "blob",

@@ -161,3 +161,23 @@ Primeira tentativa foi um direcional editorial/cookbook (Fraunces + paleta bone/
 | Macros | Barras finas (h-1) pretas sobre rule-2 | Sem cores — comparação visual sem ruído cromático |
 | Disclaimer | Linha de texto com border-top, prefixo "Aviso." em medium | Mais discreto que banner, ainda visível |
 | Layout máx | `max-w-4xl` (em vez de `max-w-5xl`) | Linhas de texto mais legíveis; densidade controlada |
+
+## Ajuste conversacional do plano + Guardrails de escopo
+
+Ver `AJUSTE-DE-PLANO-E-GUARDRAILS.md` para o passo a passo completo.
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| Endpoint de ajuste | `POST /api/diet/{id}/adjust` com `{ instruction }` | Verbo de ação sobre o recurso; espelha `/generate` |
+| Persistência do ajuste | Sobrescreve o plano no lugar + `adjusted_at`/`adjustment_count`/`last_adjustment` (migration V5) | Um registro por dieta, sem inflar o histórico; versionamento fica para depois |
+| Metas no ajuste | Reusa `targetCalories` já gravado no `DietPlan`; não recalcula TMB/TDEE | O ajuste não muda o perfil; recalcular divergiria do plano original |
+| Macros no ajuste | "Mantenha próximos do plano atual" (o plano atual vai no prompt) | Desacopla o ajuste do `macroGuidelinesFor(Profile)`; pedido raramente é sobre macro |
+| Preferências no ajuste | Lê o perfil atual; `null`-safe se o perfil foi apagado | Usa as preferências mais recentes; degrada bem |
+| Validação do ajuste | Mesmo `DietContentValidator` + 1 re-tentativa da geração | Ajuste não pode estourar a faixa calórica nem devolver lixo |
+| Limite de ajustes | `MAX_ADJUSTMENTS_PER_PLAN = 10` → `DietGenerationLimitException` (429) | Cada ajuste é chamada paga; teto por plano é simples, sem contagem por tempo |
+| Transação do ajuste | Sem `@Transactional` de método (igual a `generate`) | A chamada à LLM não pode segurar conexão do pool |
+| Guardrails de escopo | Bloco `prompts/guardrails.txt` injetado via token `{guardrails}` nos dois prompts | Texto do usuário é DADO, não comando; portável a qualquer provedor |
+| Trava estrutural | `responseSchema` (já existente) mantido no ajuste | A saída só pode ser o objeto-dieta — "gere um código" não tem onde caber |
+| `systemInstruction` | Overload `LlmService.generateJson(system, prompt, schema)`; Gemini envia `systemInstruction`, demais provedores ignoram | Regra de escopo num canal separado dos dados do usuário, sem quebrar a abstração |
+| Higiene de entrada | `DietGenerator.sanitizeForPrompt` em todo campo livre (geração e ajuste) | Neutraliza cercas ``` ``` ``` e delimitadores `---` forjados; limita tamanho |
+| Cobertura de testes | Unit no `DietGenerator` (ajuste feliz/retry/falha + guardrails/sanitização) | Casos de serviço/controller (429, 404, ponta-a-ponta) ficam para a suíte de integração (Testcontainers, item 5 do plano) |

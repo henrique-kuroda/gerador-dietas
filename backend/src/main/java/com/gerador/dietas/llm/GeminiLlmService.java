@@ -31,11 +31,16 @@ public class GeminiLlmService implements LlmService {
 
     @Override
     public String generateJson(String prompt) {
-        return generateJson(prompt, null);
+        return generateJson(null, prompt, null);
     }
 
     @Override
     public String generateJson(String prompt, Map<String, Object> responseSchema) {
+        return generateJson(null, prompt, responseSchema);
+    }
+
+    @Override
+    public String generateJson(String systemInstruction, String prompt, Map<String, Object> responseSchema) {
         if (props.apiKey() == null || props.apiKey().isBlank()) {
             log.error("GEMINI_API_KEY não foi injetada no processo. Confira variáveis de ambiente / .env.");
             throw new LlmException(Kind.CONFIGURATION, "GEMINI_API_KEY não configurada");
@@ -48,7 +53,7 @@ public class GeminiLlmService implements LlmService {
         LlmException last = null;
         for (int attempt = 0; attempt < BACKOFF_MS.length; attempt++) {
             try {
-                return callGemini(prompt, responseSchema);
+                return callGemini(systemInstruction, prompt, responseSchema);
             } catch (LlmException ex) {
                 last = ex;
                 if (ex.getKind() != Kind.UNAVAILABLE && ex.getKind() != Kind.RATE_LIMITED) {
@@ -65,7 +70,7 @@ public class GeminiLlmService implements LlmService {
         throw last;
     }
 
-    private String callGemini(String prompt, Map<String, Object> responseSchema) {
+    private String callGemini(String systemInstruction, String prompt, Map<String, Object> responseSchema) {
         URI uri = URI.create(
                 props.baseUrl() + "/v1beta/models/" + props.model() + ":generateContent");
 
@@ -76,10 +81,12 @@ public class GeminiLlmService implements LlmService {
             generationConfig.put("responseSchema", responseSchema);
         }
 
-        Map<String, Object> body = Map.of(
-                "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
-                "generationConfig", generationConfig
-        );
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))));
+        body.put("generationConfig", generationConfig);
+        if (systemInstruction != null && !systemInstruction.isBlank()) {
+            body.put("systemInstruction", Map.of("parts", List.of(Map.of("text", systemInstruction))));
+        }
 
         try {
             GeminiResponse response = restClient.post()
