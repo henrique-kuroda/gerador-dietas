@@ -85,6 +85,10 @@ cd backend
 mvn test
 ```
 
+Os testes de integração sobem um PostgreSQL real via Testcontainers — **o Docker
+precisa estar rodando**. Os testes unitários (metabolismo, prompt, rate limit) não
+dependem dele.
+
 ---
 
 ## Endpoints principais

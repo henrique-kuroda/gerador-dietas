@@ -2,6 +2,7 @@ package com.gerador.dietas.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gerador.dietas.domain.DietPlan;
+import com.gerador.dietas.domain.LlmCallKind;
 import com.gerador.dietas.domain.Profile;
 import com.gerador.dietas.domain.ProfileSnapshot;
 import com.gerador.dietas.domain.User;
@@ -22,8 +23,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 
 @Service
@@ -32,12 +31,8 @@ public class DietService {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
     };
 
-    // Cada geração custa quota/dinheiro na LLM; limite simples por usuário
-    // contando planos das últimas 24h (Bucket4j seria overkill neste estágio).
-    static final int DAILY_GENERATION_LIMIT = 5;
-
-    // Cada ajuste também é uma chamada paga à LLM; teto por plano barra abuso sem
-    // precisar de contagem por tempo.
+    // Teto por plano: além da cota diária (LlmQuotaService), impede que um único
+    // plano vire um chat infinito com a LLM.
     static final int MAX_ADJUSTMENTS_PER_PLAN = 10;
 
     private final ProfileRepository profileRepository;
@@ -46,6 +41,7 @@ public class DietService {
     private final MetabolismService metabolismService;
     private final DietGenerator dietGenerator;
     private final DietPdfService dietPdfService;
+    private final LlmQuotaService llmQuotaService;
     private final ObjectMapper objectMapper;
 
     public DietService(ProfileRepository profileRepository,
@@ -54,6 +50,7 @@ public class DietService {
                        MetabolismService metabolismService,
                        DietGenerator dietGenerator,
                        DietPdfService dietPdfService,
+                       LlmQuotaService llmQuotaService,
                        ObjectMapper objectMapper) {
         this.profileRepository = profileRepository;
         this.userRepository = userRepository;
@@ -61,6 +58,7 @@ public class DietService {
         this.metabolismService = metabolismService;
         this.dietGenerator = dietGenerator;
         this.dietPdfService = dietPdfService;
+        this.llmQuotaService = llmQuotaService;
         this.objectMapper = objectMapper;
     }
 
@@ -72,13 +70,7 @@ public class DietService {
                 .orElseThrow(() -> new ProfileIncompleteException(
                         "Complete seu perfil em PUT /api/profile antes de gerar uma dieta."));
 
-        long generatedLast24h = dietPlanRepository.countByUserIdAndCreatedAtAfter(
-                userId, Instant.now().minus(Duration.ofHours(24)));
-        if (generatedLast24h >= DAILY_GENERATION_LIMIT) {
-            throw new DietGenerationLimitException(
-                    "Limite de " + DAILY_GENERATION_LIMIT + " gerações por dia atingido. "
-                            + "Tente novamente em algumas horas.");
-        }
+        llmQuotaService.reserve(userId, LlmCallKind.GENERATE);
 
         MetabolismResult metabolism = metabolismService.calculate(profile);
 
@@ -120,6 +112,8 @@ public class DietService {
             throw new DietGenerationLimitException(
                     "Limite de " + MAX_ADJUSTMENTS_PER_PLAN + " ajustes para este plano atingido.");
         }
+
+        llmQuotaService.reserve(userId, LlmCallKind.ADJUST);
 
         // Preferências/restrições atuais do usuário (fallback: sem perfil → null tratado no prompt).
         Profile profile = profileRepository.findByUserId(userId).orElse(null);
