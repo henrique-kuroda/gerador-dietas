@@ -2,6 +2,7 @@ package com.gerador.dietas.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.gerador.dietas.llm.LlmException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -40,6 +41,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DietGenerationLimitException.class)
     public ResponseEntity<ApiError> handleDietGenerationLimit(DietGenerationLimitException ex) {
         return build(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", ex.getMessage());
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handleOptimisticLocking(OptimisticLockingFailureException ex) {
+        // Duas alterações concorrentes no mesmo plano (ex.: dois ajustes em paralelo).
+        // A segunda perde: o cliente recarrega e decide se ainda quer o ajuste.
+        return build(HttpStatus.CONFLICT, "Conflict",
+                "Este plano foi alterado por outra requisição. Recarregue a dieta e tente novamente.");
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

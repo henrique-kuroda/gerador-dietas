@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adjustDiet, downloadDietPdf, getDiet } from "../services/diet";
 import { DietPlanView } from "../components/DietPlanView";
 import { Disclaimer } from "../components/Disclaimer";
-import { extractApiErrorMessage } from "../services/api";
+import { extractApiErrorMessage, hasApiStatus } from "../services/api";
 
 const ADJUST_LIMIT = 10;
 
@@ -37,6 +37,13 @@ export function DietDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["diets"] });
       setInstruction("");
       setAdjusted(true);
+    },
+    onError: (error) => {
+      // 409: outro ajuste do mesmo plano ganhou a corrida e o que está na tela
+      // envelheceu. Recarrega para o usuário decidir sobre o plano já atualizado.
+      if (hasApiStatus(error, 409)) {
+        queryClient.invalidateQueries({ queryKey: ["diet", numericId] });
+      }
     },
   });
 

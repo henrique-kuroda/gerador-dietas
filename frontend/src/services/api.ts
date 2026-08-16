@@ -28,6 +28,10 @@ api.interceptors.response.use(
   }
 );
 
+export function hasApiStatus(err: unknown, status: number): boolean {
+  return axios.isAxiosError<ApiError>(err) && err.response?.status === status;
+}
+
 export function extractApiErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError<ApiError>(err) && err.response?.data?.message) {
     return err.response.data.message;
